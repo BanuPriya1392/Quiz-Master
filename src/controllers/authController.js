@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { sendResponse } = require("../utilities/sendResponse");
+require("dotenv").config();
 
 
 // REGISTER USER
@@ -30,16 +32,22 @@ const registerUser = async (req, res) => {
       role
     });
 
-    res.status(201).json({
-      success: true,
-      message: "User registered successfully",
-      data: {
-        id: user._id,
+  
+
+    // Send response
+  sendResponse(res, 201, {
+    success: true,
+    message: "User registered successfully.",
+    data: {
+      user: {
+          id: user._id,
         name: user.name,
         email: user.email,
         role: user.role
-      }
-    });
+       
+      },
+    },
+  });
 
   } catch (error) {
     res.status(500).json({
@@ -85,24 +93,27 @@ const loginUser = async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
+      // Send response
+ sendResponse(res, 200, {
+  success: true,
+  message: "Login successful.",
+  data: {
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    },
+  },
+});
 
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message
-    });
+   sendResponse(res, 500, {
+  success: false,
+  message: "Server Error",
+  data: { error: error.message }
+});
   }
 };
 

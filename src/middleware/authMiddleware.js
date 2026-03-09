@@ -1,3 +1,5 @@
+
+// Register validate
 const validateRegister = (req, res, next) => {
   const { name, email, password } = req.body;
 
@@ -18,7 +20,7 @@ const validateRegister = (req, res, next) => {
   next();
 };
 
-
+// Login validate
 const validateLogin = (req, res, next) => {
   const { email, password } = req.body;
 
