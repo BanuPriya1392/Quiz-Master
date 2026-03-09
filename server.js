@@ -1,30 +1,34 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
+// Import required packages
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
 
-const connectDB = require("./src/config/database");
-const userRoutes = require("./src/routes/authRoutes");
+// Import database connection
+import connectDB from "./src/config/database.js";
 
-// Load environment variables FIRST
+// Import routes
+import authRoutes from "./src/routes/authRoutes.js";
+
+// Load environment variables
 dotenv.config();
 
-// Initialize express
+// Initialize express app
 const app = express();
 
 // Middleware
-app.use(express.json());
-app.use(cors());
+app.use(express.json()); // to read JSON data
+app.use(cors()); // allow frontend connection
 
-// Connect to MongoDB
+// Connect MongoDB
 connectDB();
+
+// Routes
+app.use("/api/auth", authRoutes);
 
 // Test route
 app.get("/", (req, res) => {
-  res.send("Quiz API is running...");
+  res.send("Authentication API Running");
 });
-
-// API Routes
-app.use("/api/users", userRoutes);
 
 // Port
 const PORT = process.env.PORT || 5000;

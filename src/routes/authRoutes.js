@@ -1,16 +1,56 @@
-const express = require("express");
+// Import express
+import express from "express";
 
-const { registerUser, loginUser } = require("../controllers/authController");
-const { validateRegister } = require("../middleware/authMiddleware");
+// Import controller functions
+import {
+  registerUser,
+  loginUser
+} from "../controllers/authController.js";
 
+// Import validation rules
+import {
+  registerValidator,
+  loginValidator
+} from "../validators/authValidator.js";
+
+// Import middleware to check validation errors
+import validateRequest from "../middleware/validateRequest.js";
+
+// Create router
 const router = express.Router();
 
 
-// Register
-router.post("/register", validateRegister, registerUser);
+// ================= REGISTER USER =================
+// Endpoint: POST /api/auth/register
+router.post(
+  "/register",
+
+  // Run validation rules
+  registerValidator,
+
+  // Check validation errors
+  validateRequest,
+
+  // Call controller
+  registerUser
+);
 
 
-// Login
-router.post("/login", loginUser);
+// ================= LOGIN USER =================
+// Endpoint: POST /api/auth/login
+router.post(
+  "/login",
 
-module.exports = router;
+  // Validate login fields
+  loginValidator,
+
+  // Check validation errors
+  validateRequest,
+
+  // Call controller
+  loginUser
+);
+
+
+// Export router
+export default router;
