@@ -1,35 +1,71 @@
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
-// Create schema
 const userSchema = new mongoose.Schema(
   {
-    // User full name
     name: {
       type: String,
-      required: true
+      required: [true, "Full Name is required"],
+      trim: true,
+      minlength: [3, "Name must be at least 3 characters"],
     },
 
-    // Email
     email: {
       type: String,
-      required: true,
-      unique: true
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/\S+@\S+\.\S+/, "Please enter a valid email"],
     },
 
-    // Password
     password: {
       type: String,
-      required: true
+      required: [true, "Password is required"],
+      minlength: 8,
     },
-    // role
-    role:{
-      type:String,
-      required:true,
-      enum:["user","admin"]
-    }
+
+    confirmPassword: {
+      type: String,
+      required: [true, "Please confirm your password"],
+      minlength: 8,
+    },
+    role: {
+      type: String,
+      enum: ["student", "admin", "mentor"],
+      default: "student",
+    },
+
+    agreeToTerms: {
+      type: Boolean,
+      required: true,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  },
 );
 
-// Export model
-export default mongoose.model("User", userSchema);
+// 🔐 HASH PASSWORD BEFORE SAVING USER
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) {
+    return next();
+  }
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 🔑 METHOD TO COMPARE PASSWORD DURING LOGIN
+userSchema.methods.comparePassword = async function (enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password);
+};
+
+const User = mongoose.model("User", userSchema);
+
+export default User;
