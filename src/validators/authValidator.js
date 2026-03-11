@@ -2,8 +2,6 @@
 import { body } from "express-validator";
 
 
-// ================= REGISTER VALIDATION =================
-
 export const registerValidator = [
 
   // Validate Name
@@ -20,13 +18,13 @@ export const registerValidator = [
 
   // Validate Password
   body("password")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters")
+  .notEmpty()
+  .trim()
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters")
 
 ];
 
-
-// ================= LOGIN VALIDATION =================
 
 export const loginValidator = [
 

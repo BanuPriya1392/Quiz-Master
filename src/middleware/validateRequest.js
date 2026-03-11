@@ -1,7 +1,7 @@
-// Import validationResult to collect validation errors
+// import validationResult to collect validation errors
 import { validationResult } from "express-validator";
 
-// Import common response function
+// import common response function
 import sendResponse from "../utils/sendResponse.js";
 
 
