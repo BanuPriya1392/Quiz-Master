@@ -1,31 +1,24 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
+// Function to connect MongoDB
 const connectDB = async () => {
   try {
-   mongoose.connection.on("connected",()=>{
-    console.log("MongoDB connected");
-   });
 
-   mongoose.connection.on("error",(err)=>{
-    console.log("MongoDB error:",err);
-   });
-   mongoose.connection.on("Disconnected",()=>{
-    console.warn("MongoDB disconnected. Reconnecting...");
-   });
+    // connect to MongoDB using connection string from .env
+    await mongoose.connect(process.env.MONGO_URL);
 
-   await mongoose.connect(process.env.MONGO_URL,{
-    autoIndex:false,
-    maxPoolSize:10,
-    serverSelectionTimeoutMS:5000,
-    socketTimeoutMS:45000,
-    family:4
-   }
-    
-   )
+    // success message
+    console.log("MongoDB Connected Successfully");
+
   } catch (error) {
-    console.error("MongoDB intial connection failed:", error.message);
+
+    // error message if connection fails
+    console.log("Database connection error:", error);
+
+    // stop server if DB connection fails
     process.exit(1);
   }
 };
 
-module.exports = connectDB;
+// export function to use in server.js
+export default connectDB;

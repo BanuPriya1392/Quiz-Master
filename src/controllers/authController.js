@@ -1,23 +1,21 @@
-const User = require("../models/User");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const { sendResponse } = require("../utilities/sendResponse");
-require("dotenv").config();
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import sendResponse from "../utils/sendResponse.js";
 
 
 // REGISTER USER
-const registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
+
   try {
-    const { name, email, password, role } = req.body;
 
-    // Check existing user
-    const existingUser = await User.findOne({ email });
+    const { name, email, password ,role} = req.body;
 
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists"
-      });
+    // Check if user already exists
+    const userExists = await User.findOne({ email });
+
+    if (userExists) {
+      return sendResponse(res, 400, false, "User already exists");
     }
 
     // Hash password
@@ -33,90 +31,76 @@ const registerUser = async (req, res) => {
     });
 
   
-
-    // Send response
-  sendResponse(res, 201, {
-    success: true,
-    message: "User registered successfully.",
-    data: {
-      user: {
-          id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-       
-      },
-    },
-  });
+    return sendResponse(res, 201, true, "User registered successfully", {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+      
+    });
 
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Server Error",
-      error: error.message
-    });
+
+    return sendResponse(res, 500, false, error.message);
   }
 };
 
 
 
 // LOGIN USER
-const loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
+
   try {
 
     const { email, password } = req.body;
 
-    // Check user
+    // Find user
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid email or password"
-      });
+      return sendResponse(res, 400, false, "Invalid credentials");
     }
 
     // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid email or password"
-      });
+      return sendResponse(res, 400, false, "Invalid credentials");
     }
 
-    // Generate JWT token
+    // Generate token
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" }
+      { expiresIn: "1d" }
     );
 
-      // Send response
- sendResponse(res, 200, {
-  success: true,
-  message: "Login successful.",
-  data: {
-    token,
-    user: {
+    return sendResponse(res, 200, true, "Login successful", {
       id: user._id,
       name: user.name,
       email: user.email,
-      role: user.role
-    },
-  },
-});
+      token
+    });
 
   } catch (error) {
-   sendResponse(res, 500, {
-  success: false,
-  message: "Server Error",
-  data: { error: error.message }
-});
+
+    return sendResponse(res, 500, false, error.message);
   }
 };
 
 
-// EXPORT CONTROLLERS
-module.exports = { registerUser, loginUser };
+
+// GET USER PROFILE (Protected Route)
+export const getProfile = async (req, res) => {
+
+  try {
+
+    const user = await User.findById(req.user.id).select("-password");
+
+    return sendResponse(res, 200, true, "User profile", user);
+
+  } catch (error) {
+
+    return sendResponse(res, 500, false, error.message);
+  }
+};

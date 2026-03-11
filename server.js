@@ -1,32 +1,37 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
+// import required packages
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
 
-const connectDB = require("./src/config/database");
-const userRoutes = require("./src/routes/authRoutes");
+// import database connection
+import connectDB from "./src/config/database.js";
 
-// Load environment variables FIRST
+// import routes
+import authRoutes from "./src/routes/authRoutes.js";
+
+// Load environment variables from .env file
 dotenv.config();
 
-// Initialize express
+// Initialize express app
 const app = express();
 
 // Middleware
-app.use(express.json());
-app.use(cors());
+app.use(express.json()); // middleware to read JSON request body
+app.use(cors()); // allow frontend (React / other apps) to access backend
 
-// Connect to MongoDB
+// Connect MongoDB database
 connectDB();
 
-// Test route
+// Routes
+app.use("/api/auth", authRoutes); 
+// All authentication routes will start with /api/auth
+
+// Test route to check if API is running
 app.get("/", (req, res) => {
-  res.send("Quiz API is running...");
+  res.send("Authentication API Running");
 });
 
-// API Routes
-app.use("/api/users", userRoutes);
-
-// Port
+// Port from environment variable or default 5000
 const PORT = process.env.PORT || 5000;
 
 // Start server
