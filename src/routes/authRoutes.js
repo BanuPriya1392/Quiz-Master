@@ -19,7 +19,7 @@ import validateRequest from "../middleware/validateRequest.js";
 // Create router
 const router = express.Router();
 
-// ================= REGISTER USER =================
+
 // Endpoint: POST /api/auth/register
 router.post(
   "/register",
@@ -35,7 +35,6 @@ router.post(
 );
 
 
-// ================= LOGIN USER =================
 // Endpoint: POST /api/auth/login
 router.post(
   "/login",
