@@ -9,29 +9,35 @@ import connectDB from "./src/config/database.js";
 // import routes
 import authRoutes from "./src/routes/authRoutes.js";
 
-// Load environment variables from .env file
+// Load environment variables
 dotenv.config();
 
 // Initialize express app
 const app = express();
 
-// Middleware
-app.use(express.json()); // middleware to read JSON request body
-app.use(cors()); // allow frontend (React / other apps) to access backend
-
-// Connect MongoDB database
+// Connect MongoDB
 connectDB();
 
-// Routes
-app.use("/api/auth", authRoutes); 
-// All authentication routes will start with /api/auth
+// Middleware
+app.use(express.json()); // Read JSON body
 
-// Test route to check if API is running
+// CORS configuration (important for React frontend)
+app.use(
+  cors({
+    origin: "http://localhost:5173", // React frontend URL
+    credentials: true
+  })
+);
+
+// Routes
+app.use("/api/auth", authRoutes);
+
+// Test route
 app.get("/", (req, res) => {
   res.send("Authentication API Running");
 });
 
-// Port from environment variable or default 5000
+// Port
 const PORT = process.env.PORT || 5000;
 
 // Start server

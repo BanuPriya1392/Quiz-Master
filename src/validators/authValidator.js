@@ -1,42 +1,56 @@
-// Import validation methods
 import { body } from "express-validator";
-
 
 export const registerValidator = [
 
-  // Validate Name
+  // Full Name validation
   body("name")
     .trim()
     .notEmpty()
-    .withMessage("Full name is required"),
+    .withMessage("Full Name is required")
+    .isLength({ min: 3 })
+    .withMessage("Name must be at least 3 characters"),
 
-  // Validate Email
+  // Email validation
   body("email")
     .trim()
+    .notEmpty()
+    .withMessage("Email is required")
     .isEmail()
-    .withMessage("Valid email is required"),
+    .withMessage("Email is invalid"),
 
-  // Validate Password
+  // Password validation
   body("password")
-  .notEmpty()
-  .trim()
+    .trim()
+    .notEmpty()
+    .withMessage("Password is required")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters")
+    .matches(/\d/)
+    .withMessage("Password must contain a number")
+    .matches(/[!@#$%^&*(),.?":{}|<>]/)
+    .withMessage("Password must contain a special character")
+    .matches(/[a-z]/)
+    .withMessage("Password must contain a lowercase letter")
+    .matches(/[A-Z]/)
+    .withMessage("Password must contain an uppercase letter"),
 
-];
-
-
-export const loginValidator = [
-
-  // Validate Email
-  body("email")
+  // Confirm password validation
+  body("confirmPassword")
     .trim()
-    .isEmail()
-    .withMessage("Valid email required"),
-
-  // Validate Password
-  body("password")
     .notEmpty()
-    .withMessage("Password required")
+    .withMessage("Confirm Password is required")
+    .custom((value, { req }) => {
+
+      if (value.trim()!== req.body.password.trim()) {
+        throw new Error("Passwords do not match");
+      }
+
+      return true;
+    }),
+
+  // Terms agreement validation
+  body("agreeToTerms")
+    .equals("true")
+    .withMessage("You must agree to the terms")
 
 ];
