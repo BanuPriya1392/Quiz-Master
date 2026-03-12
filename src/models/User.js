@@ -25,11 +25,11 @@ const userSchema = new mongoose.Schema(
     minlength:8
   },
 
-  confirmPassword:{
-    type:String,
-    required:[true,"Please confirm your password"],
-    minlength:8
-  },
+  // confirmPassword:{
+  //   type:String,
+  //   required:[true,"Please confirm your password"],
+  //   minlength:8
+  // },
 
   role:{
     type:String,
@@ -48,16 +48,14 @@ const userSchema = new mongoose.Schema(
 
 
 // Hash password
-userSchema.pre("save", async function(next){
+userSchema.pre("save", async function(){
 
   if(!this.isModified("password")){
-    return next();
+    return ;
   }
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-
-  next();
 
 });
 
