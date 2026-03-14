@@ -9,6 +9,9 @@ import connectDB from "./src/config/database.js";
 // import routes
 import authRoutes from "./src/routes/authRoutes.js";
 
+// Quiz Routes
+import quizRoutes from "./src/routes/quizRoutes.js";
+
 // Load environment variables
 dotenv.config();
 
@@ -31,6 +34,9 @@ app.use(
 
 // Routes
 app.use("/api/auth", authRoutes);
+
+// Quiz route
+app.use("/api/mentor/quiz", quizRoutes);
 
 // Test route
 app.get("/", (req, res) => {

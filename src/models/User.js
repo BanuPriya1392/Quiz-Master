@@ -25,11 +25,6 @@ const userSchema = new mongoose.Schema(
     minlength:8
   },
 
-  // confirmPassword:{
-  //   type:String,
-  //   required:[true,"Please confirm your password"],
-  //   minlength:8
-  // },
 
   role:{
     type:String,

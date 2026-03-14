@@ -20,11 +20,14 @@ export const registerValidator = [
 
   // Password validation
   body("password")
+    .isString()
+    .withMessage("Password must be a characters")
+    .bail()
     .trim()
     .notEmpty()
     .withMessage("Password is required")
-    .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters")
+    .isLength({ min: 10 })
+    .withMessage("Password must be at least 10 characters")
     .matches(/\d/)
     .withMessage("Password must contain a number")
     .matches(/[!@#$%^&*(),.?":{}|<>]/)
@@ -41,7 +44,7 @@ export const registerValidator = [
     .withMessage("Confirm Password is required")
     .custom((value, { req }) => {
 
-      if (value.trim()!== req.body.password.trim()) {
+      if (String(value).trim()!== String(req.body.password).trim()) {
         throw new Error("Passwords do not match");
       }
 
