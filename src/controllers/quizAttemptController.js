@@ -9,8 +9,8 @@ import QuizAttempt from "../models/QuizAttempt.js";
 export const getQuizQuestions = async (req, res, next) => {
   try {
     const questions = await Question.find()
-      .select("-correct -tip -createdAt -updatedAt")
-      .sort({ createdAt: 1 });
+      .select("-correct -tip -createdAt -updatedAt") //This hides fields from the frontend.
+      .sort({ createdAt: 1 }); //Questions appear in the same order they were created.
 
     if (questions.length === 0) {
       return res.status(404).json({
@@ -46,7 +46,7 @@ export const submitQuiz = async (req, res, next) => {
     const { answers, timeTaken } = req.body; // ✅ only answers & timeTaken needed
     const userId = req.user.id;
 
-    // Already attempted today check
+    // Check if the user has already attempted the quiz today
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -64,7 +64,7 @@ export const submitQuiz = async (req, res, next) => {
     }
 
     // Verify all questionIds exist in DB
-    const questionIds = answers.map((a) => a.questionId);
+    const questionIds = answers.map((a) => a.questionId); //Validate Question IDs
     const dbQuestions = await Question.find({ _id: { $in: questionIds } });
 
     if (dbQuestions.length !== 10) {
@@ -144,7 +144,7 @@ export const getAttemptById = async (req, res, next) => {
     const attempt = await QuizAttempt.findOne({
       _id: req.params.attemptId,
       userId: req.user.id, // own attempt only
-    }).populate("answers.questionId", "question options tip correct");
+    }).populate("answers.questionId", "question options tip correct"); //fetches question data from Question collection.
 
     if (!attempt) {
       return res.status(404).json({
