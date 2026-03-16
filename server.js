@@ -12,6 +12,8 @@ import authRoutes from "./src/routes/authRoutes.js";
 // Quiz Routes
 import quizRoutes from "./src/routes/quizRoutes.js";
 
+//Import user quiz routes
+import userQuizRoutes from "./src/routes/userQuizRoutes.js";
 // Load environment variables
 dotenv.config();
 
@@ -28,8 +30,8 @@ app.use(express.json()); // Read JSON body
 app.use(
   cors({
     origin: "http://localhost:5173", // React frontend URL
-    credentials: true
-  })
+    credentials: true,
+  }),
 );
 
 // Routes
@@ -38,6 +40,7 @@ app.use("/api/auth", authRoutes);
 // Quiz route
 app.use("/api/mentor/quiz", quizRoutes);
 
+app.use("/api/user/quiz", userQuizRoutes);
 // Test route
 app.get("/", (req, res) => {
   res.send("Authentication API Running");
