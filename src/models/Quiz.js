@@ -76,6 +76,11 @@ const questionSchema = new mongoose.Schema(
       minlength: [10,  "Tip must be at least 10 characters."],
       maxlength: [500, "Tip must not exceed 500 characters."],
     },
+    createdBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "User",
+  required: true,
+},
   },
   {
     timestamps: true,

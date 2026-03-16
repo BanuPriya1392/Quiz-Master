@@ -16,7 +16,7 @@ import { verifyToken, isMentor } from "../middlewares/authMiddleware.js";
 const router = express.Router();
 
 /* PUBLIC —(students + mentors) */
-router.get("/",    getAllQuestions);
+router.get("/", verifyToken,isMentor, getAllQuestions);
 router.get("/:id", validateId, getQuestionById);
 
 /*  PROTECTED — Mentor login token 

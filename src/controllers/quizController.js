@@ -6,34 +6,35 @@ import Question from "../models/Quiz.js";
 export const getAllQuestions = async (req, res, next) => {
   try {
     const { title } = req.query;
+    const filter = { createdBy: req.user.id };  
 
-    // title query 
-    const filter = title
-      ? { title: { $regex: new RegExp(`^${title.trim()}$`, "i") } }
-      : {};
+    if (title) {
+      filter.title = { $regex: new RegExp(`^${title.trim()}$`, "i") };
+    }
 
     const questions = await Question.find(filter).sort({ createdAt: 1 });
 
-    // Available titles list
-    const availableTitles = await Question.distinct("title");
+    const availableTitles = await Question.distinct("title", { createdBy: req.user.id }); 
 
     res.status(200).json({
       success: true,
-      total:           questions.length,
-      availableTitles, // ["JavaScript", "HTML", "CSS"]
-      data:            questions,
+      total: questions.length,
+      availableTitles,
+      data: questions,
     });
   } catch (err) {
     next(err);
   }
 };
-
 /* ─────────────────────────────────────────────────────────────
    GET /api/mentor/quiz/:id
 ───────────────────────────────────────────────────────────── */
 export const getQuestionById = async (req, res, next) => {
   try {
-    const question = await Question.findById(req.params.id);
+    const question = await Question.findOne({ 
+  _id: req.params.id, 
+  createdBy: req.user.id 
+});
     if (!question) {
       return res.status(404).json({
         success: false,
@@ -52,20 +53,23 @@ export const getQuestionById = async (req, res, next) => {
 ───────────────────────────────────────────────────────────── */
 export const createQuestion = async (req, res, next) => {
   try {
+     
     const { title, question, options, correct, tip } = req.body;
 
     const created = await Question.create({
-      title:    title.trim(),
-      question: question.trim(),
-      options:  options.map((o) => ({ id: o.id, text: o.text.trim() })),
+      title:     title.trim(),
+      question:  question.trim(),
+
+      options:   options.map((o) => ({ id: o.id, text: o.text.trim() })),
       correct,
-      tip:      tip.trim(),
+      tip:       tip.trim(),
+      createdBy: req.user.id,  
     });
 
     res.status(201).json({
       success: true,
       message: `Question added to "${title}" quiz successfully.`,
-      data:    created,
+      data: created,
     });
   } catch (err) {
     next(err);
@@ -80,7 +84,7 @@ export const updateQuestion = async (req, res, next) => {
     const { title, question, options, correct, tip } = req.body;
 
     const updated = await Question.findByIdAndUpdate(
-      req.params.id,
+       { _id: req.params.id, createdBy: req.user.id },
       {
         title:    title.trim(),
         question: question.trim(),
@@ -88,7 +92,7 @@ export const updateQuestion = async (req, res, next) => {
         correct,
         tip:      tip.trim(),
       },
-      { new: true, runValidators: true }
+      {  returnDocument: "after", runValidators: true }
     );
 
     if (!updated) {
@@ -113,7 +117,9 @@ export const updateQuestion = async (req, res, next) => {
 ───────────────────────────────────────────────────────────── */
 export const deleteQuestion = async (req, res, next) => {
   try {
-    const deleted = await Question.findByIdAndDelete(req.params.id);
+    const deleted = await Question.findByIdAndDelete( {_id: req.params.id,
+      createdBy: req.user.id, 
+    });
     if (!deleted) {
       return res.status(404).json({
         success: false,

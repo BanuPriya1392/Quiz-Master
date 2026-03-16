@@ -14,6 +14,9 @@ import quizRoutes from "./src/routes/quizRoutes.js";
 
 //Import user quiz routes
 import userQuizRoutes from "./src/routes/userQuizRoutes.js";
+
+import quizSessionRoutes from "./src/routes/quizSession.Routes.js";
+
 // Load environment variables
 dotenv.config();
 
@@ -41,6 +44,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/mentor/quiz", quizRoutes);
 
 app.use("/api/user/quiz", userQuizRoutes);
+
+app.use("/api/quiz/session", quizSessionRoutes);
+
 // Test route
 app.get("/", (req, res) => {
   res.send("Authentication API Running");
