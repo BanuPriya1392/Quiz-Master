@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-/* MIDDLEWARE 1 — verifyToken */
+// MIDDLEWARE 1 — verifyToken
 export const verifyToken = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -13,7 +13,7 @@ export const verifyToken = (req, res, next) => {
       });
     }
 
-    // "Bearer <token>" → token
+    // "Bearer <token>" - token
     const token = authHeader.split(" ")[1];
 
     //  JWT_SECRET
@@ -47,6 +47,7 @@ export const isMentor = (req, res, next) => {
   }
   next();
 };
+
 /* MIDDLEWARE 3 — isStudent */
 export const isStudent = (req, res, next) => {
   if (req.user.role !== "student") {
@@ -57,3 +58,5 @@ export const isStudent = (req, res, next) => {
   }
   next();
 };
+
+

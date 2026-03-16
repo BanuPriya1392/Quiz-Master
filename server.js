@@ -9,6 +9,9 @@ import connectDB from "./src/config/database.js";
 // import routes
 import authRoutes from "./src/routes/authRoutes.js";
 
+// user routes
+import userRoutes from "./src/routes/userRoutes.js";
+
 // Quiz Routes
 import quizRoutes from "./src/routes/quizRoutes.js";
 
@@ -39,6 +42,9 @@ app.use(
 
 // Routes
 app.use("/api/auth", authRoutes);
+
+//user routes
+app.use("/api/user", userRoutes);
 
 // Quiz route
 app.use("/api/mentor/quiz", quizRoutes);

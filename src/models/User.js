@@ -25,6 +25,43 @@ const userSchema = new mongoose.Schema(
     minlength:8
   },
 
+  photo:{
+    type:String,
+    default:"https://i.pravatar.cc/100"
+  },
+
+  rank:{
+    type:String,
+    default:"Beginner"
+  },
+
+  xp:{
+    type:Number,
+    default:0
+  },
+
+  quizzes:{
+    type:Number,
+    default:0
+  },
+
+  score:{
+    type:Number,
+    default:0
+  },
+
+  streak:{
+    type:Number,
+    default:0
+  },
+
+  joined:{
+    type:String,
+    default: () => {
+      const date = new Date();
+      return date.toLocaleString("default",{month:"short",year:"numeric"});
+    }
+  },
 
   role:{
     type:String,
@@ -42,11 +79,11 @@ const userSchema = new mongoose.Schema(
 );
 
 
-// Hash password
+// HASH PASSWORD
 userSchema.pre("save", async function(){
 
   if(!this.isModified("password")){
-    return ;
+    return next();
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -55,10 +92,15 @@ userSchema.pre("save", async function(){
 });
 
 
+// COMPARE PASSWORD
 userSchema.methods.comparePassword = async function(password){
   return bcrypt.compare(password,this.password);
 };
 
-const User = mongoose.model("User",userSchema);
 
+// CREATE MODEL
+const User = mongoose.model("User", userSchema);
+
+
+// EXPORT MODEL
 export default User;
