@@ -134,3 +134,58 @@ export const deleteQuestion = async (req, res, next) => {
     next(err);
   }
 };
+
+/* POST /api/mentor/quiz/bulk */
+export const createBulkQuestions = async (req, res, next) => {
+  try {
+    const { title, questions } = req.body;
+    // questions = array of { question, options, correct, tip }
+
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Questions array is required.",
+      });
+    }
+
+    if (questions.length > 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Maximum 10 questions allowed per bulk insert.",
+      });
+    }
+
+    // Existing count check
+    const existingCount = await Question.countDocuments({
+      title: { $regex: new RegExp(`^${title.trim()}$`, "i") },
+      createdBy: req.user.id,
+    });
+
+    if (existingCount + questions.length > 10) {
+      return res.status(400).json({
+        success: false,
+        message: `"${title}" already has ${existingCount} questions. You can add only ${10 - existingCount} more.`,
+      });
+    }
+
+    // All questions
+    const docs = questions.map((q) => ({
+      title:     title.trim(),
+      question:  q.question.trim(),
+      options:   q.options.map((o) => ({ id: o.id, text: o.text.trim() })),
+      correct:   q.correct,
+      tip:       q.tip.trim(),
+      createdBy: req.user.id,
+    }));
+
+    const created = await Question.insertMany(docs);
+
+    res.status(201).json({
+      success: true,
+      message: `${created.length} questions added to "${title}" successfully.`,
+      data: created,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

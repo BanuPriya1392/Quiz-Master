@@ -19,8 +19,8 @@ const quizSessionSchema = new mongoose.Schema(
       default: 10,
     },
     timeLimit: {
-      type: Number,
-      default: 600000, 
+      type: String,
+     default: "10 Min:00 Sec", 
     },
     score: {
       type: Number,

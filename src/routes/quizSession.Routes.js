@@ -3,14 +3,12 @@ import {
   startQuizSession,
   completeQuizSession,
 } from "../controllers/quizSession.controller.js";
-import { verifyToken } from "../middlewares/authMiddleware.js";
+import { verifyToken, isStudent } from "../middlewares/authMiddleware.js"; // ✅ isStudent import
 
 const router = express.Router();
 
-// Student — Start quiz session
-router.post("/start", verifyToken, startQuizSession);
 
-// Student — Complete quiz session
-router.put("/complete/:sessionId", verifyToken, completeQuizSession);
+router.post("/start", verifyToken, isStudent, startQuizSession);
+router.put("/complete/:sessionId", verifyToken, isStudent, completeQuizSession);
 
 export default router;

@@ -58,7 +58,7 @@ export const validateSubmitQuiz = [
           }
         }
 
-        // ✅ isCorrect removed — server auto-calculates it
+        
       });
 
       return true;
@@ -71,11 +71,10 @@ export const validateSubmitQuiz = [
     .isInt({ min: 0, max: 600 })
     .withMessage("Time taken must be between 0 and 600 seconds."),
 
-  // ✅ score, percentage, status, cross-field checks removed — auto-generated in controller
+
 
   validate,
 ];
 
-/* GET MY ATTEMPTS — no body validation needed
-   (user id comes from JWT token via verifyToken) */
+/* GET MY ATTEMPTS — no body validation needed */
 export const validateGetAttempts = [];

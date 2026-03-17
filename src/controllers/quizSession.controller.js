@@ -27,7 +27,7 @@ export const startQuizSession = async (req, res, next) => {
       user: req.user.id,
       questions: questions.map((q) => q._id),
       totalQuestions: 10,
-      timeLimit: 600000, // 10 minutes in ms
+      timeLimit: "10 Min:00 Sec", 
       startedAt: Date.now(),
     });
 
@@ -35,10 +35,10 @@ export const startQuizSession = async (req, res, next) => {
       success: true,
       message: "Quiz session started.",
       data: {
-    sessionId: session._id,
-    timeLimit: session.timeLimit,
-    questions: questions,
-  },
+        sessionId: session._id,
+        timeLimit: session.timeLimit,
+        questions: questions,
+      },
     });
   } catch (err) {
     next(err);
@@ -47,9 +47,7 @@ export const startQuizSession = async (req, res, next) => {
 
 /* ─────────────────────────────────────────────────────────────
    PUT /api/quiz/complete/:sessionId
-  
 ───────────────────────────────────────────────────────────── */
-
 export const completeQuizSession = async (req, res, next) => {
   try {
     const { score } = req.body;
@@ -66,10 +64,25 @@ export const completeQuizSession = async (req, res, next) => {
     const completedAt = Date.now();
     const timeTaken = completedAt - session.startedAt;
 
+    // After 10 minutes shows error
+    const TEN_MINUTES = 10 * 60 * 1000; // milliseconds
+    if (timeTaken > TEN_MINUTES) {
+      return res.status(400).json({
+        success: false,
+        message: "Time limit exceeded. Quiz session expired.",
+      });
+    }
+
+    // Format time
+    const totalSeconds = Math.floor(timeTaken / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const formattedTime = `${String(minutes).padStart(2, "0")} Min:${String(seconds).padStart(2, "0")} Sec`;
+
     await QuizSession.findByIdAndUpdate(
       req.params.sessionId,
       { score, isCompleted: true, completedAt },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     res.status(200).json({
@@ -78,7 +91,7 @@ export const completeQuizSession = async (req, res, next) => {
       data: {
         score,
         totalQuestions: session.totalQuestions,
-        timeTaken: `${Math.floor(timeTaken / 1000)} seconds`,
+        timeTaken: formattedTime,
         completedAt,
       },
     });
