@@ -3,15 +3,17 @@ import QuizAttempt from "../models/QuizAttempt.js";
 
 /* ─────────────────────────────────────────────────────────────
    GET /api/user/quiz
-   Frontend: fetches questions to render quiz screen
-   correct field hidden — student cannot see answers
+   - Fetch quiz questions
+   - Hide correct answers from user
+   - Ensure at least 10 questions exist
 ───────────────────────────────────────────────────────────── */
 export const getQuizQuestions = async (req, res, next) => {
   try {
     const questions = await Question.find()
-      .select("-correct -tip -createdAt -updatedAt") //This hides fields from the frontend.
-      .sort({ createdAt: 1 }); //Questions appear in the same order they were created.
+      .select("-correct -tip -createdAt -updatedAt") // hide sensitive fields
+      .sort({ createdAt: 1 });
 
+    // ❌ No questions available
     if (questions.length === 0) {
       return res.status(404).json({
         success: false,
@@ -19,6 +21,7 @@ export const getQuizQuestions = async (req, res, next) => {
       });
     }
 
+    // ❌ Not enough questions
     if (questions.length < 10) {
       return res.status(400).json({
         success: false,
@@ -38,15 +41,24 @@ export const getQuizQuestions = async (req, res, next) => {
 
 /* ─────────────────────────────────────────────────────────────
    POST /api/user/quiz/submit
-   Frontend sends: { answers, timeTaken }
-   Server auto-generates: score, percentage, status, isCorrect
+   - Accepts answers + timeTaken (seconds)
+   - Calculates score, percentage, status
+   - Returns timeTaken in MM:SS format
 ───────────────────────────────────────────────────────────── */
 export const submitQuiz = async (req, res, next) => {
   try {
-    const { answers, timeTaken } = req.body; // ✅ only answers & timeTaken needed
+    const { answers, timeTaken } = req.body;
     const userId = req.user.id;
 
-    // Check if the user has already attempted the quiz today
+    //  Validate time (0–600 seconds)
+    if (!QuizAttempt.isValidTimeTaken(timeTaken)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid time taken. Must be between 0 and 600 seconds.",
+      });
+    }
+
+    //  Restrict one attempt per day
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -63,9 +75,12 @@ export const submitQuiz = async (req, res, next) => {
       });
     }
 
-    // Verify all questionIds exist in DB
-    const questionIds = answers.map((a) => a.questionId); //Validate Question IDs
-    const dbQuestions = await Question.find({ _id: { $in: questionIds } });
+    //  Validate question IDs
+    const questionIds = answers.map((a) => a.questionId);
+
+    const dbQuestions = await Question.find({
+      _id: { $in: questionIds },
+    });
 
     if (dbQuestions.length !== 10) {
       return res.status(400).json({
@@ -74,30 +89,37 @@ export const submitQuiz = async (req, res, next) => {
       });
     }
 
-    // Server-side score calculation — tamper proof
+    //  Calculate score securely (server-side)
     let serverScore = 0;
+
     const verifiedAnswers = answers.map((ans) => {
       const question = dbQuestions.find(
         (q) => q._id.toString() === ans.questionId.toString(),
       );
+
       const isCorrect = question && ans.selected === question.correct;
+
       if (isCorrect) serverScore++;
+
       return {
         questionId: ans.questionId,
         selected: ans.selected || null,
-        isCorrect: isCorrect || false, // ✅ auto-calculated
+        isCorrect: isCorrect || false,
       };
     });
 
-    // ✅ score, percentage, status all auto-generated — no frontend values trusted
+    //  Save attempt in DB (time stored as seconds)
     const attempt = await QuizAttempt.create({
       userId,
       answers: verifiedAnswers,
-      score: serverScore, // ✅ auto
-      percentage: Math.round((serverScore / 10) * 100), // ✅ auto
+      score: serverScore,
+      percentage: Math.round((serverScore / 10) * 100),
       timeTaken,
-      status: serverScore / 10 >= 0.7 ? "Passed" : "Failed", // ✅ auto
+      status: serverScore >= 7 ? "Passed" : "Failed",
     });
+
+    //  Convert timeTaken → MM:SS using schema method
+    const formattedTime = attempt.getFormattedTimeTaken();
 
     res.status(201).json({
       success: true,
@@ -105,7 +127,7 @@ export const submitQuiz = async (req, res, next) => {
       data: {
         score: attempt.score,
         percentage: attempt.percentage,
-        timeTaken: attempt.timeTaken,
+        timeTaken: formattedTime, //  written as MM:SS
         status: attempt.status,
         attemptId: attempt._id,
       },
@@ -117,18 +139,25 @@ export const submitQuiz = async (req, res, next) => {
 
 /* ─────────────────────────────────────────────────────────────
    GET /api/user/quiz/my-attempts
-   Frontend: attempts history screen
+   - Returns all attempts (summary)
+   - Replaces timeTaken with MM:SS
 ───────────────────────────────────────────────────────────── */
 export const getMyAttempts = async (req, res, next) => {
   try {
     const attempts = await QuizAttempt.find({ userId: req.user.id })
-      .select("-answers") // summary only
-      .sort({ createdAt: -1 }); // latest first
+      .select("-answers") // exclude detailed answers
+      .sort({ createdAt: -1 });
+
+    //  Format time for each attempt
+    const formattedAttempts = attempts.map((attempt) => ({
+      ...attempt.toObject(),
+      timeTaken: attempt.getFormattedTimeTaken(), // overwrite
+    }));
 
     res.status(200).json({
       success: true,
       total: attempts.length,
-      data: attempts,
+      data: formattedAttempts,
     });
   } catch (err) {
     next(err);
@@ -137,14 +166,16 @@ export const getMyAttempts = async (req, res, next) => {
 
 /* ─────────────────────────────────────────────────────────────
    GET /api/user/quiz/my-attempts/:attemptId
-   Frontend: result screen — shows correct answers & tips
+   - Returns detailed attempt
+   - Includes correct answers + tips
+   - Formats timeTaken
 ───────────────────────────────────────────────────────────── */
 export const getAttemptById = async (req, res, next) => {
   try {
     const attempt = await QuizAttempt.findOne({
       _id: req.params.attemptId,
-      userId: req.user.id, // own attempt only
-    }).populate("answers.questionId", "question options tip correct"); //fetches question data from Question collection.
+      userId: req.user.id,
+    }).populate("answers.questionId", "question options tip correct");
 
     if (!attempt) {
       return res.status(404).json({
@@ -153,7 +184,13 @@ export const getAttemptById = async (req, res, next) => {
       });
     }
 
-    res.status(200).json({ success: true, data: attempt });
+    res.status(200).json({
+      success: true,
+      data: {
+        ...attempt.toObject(),
+        timeTaken: attempt.getFormattedTimeTaken(), //  overwrite
+      },
+    });
   } catch (err) {
     next(err);
   }
