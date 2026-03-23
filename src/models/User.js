@@ -1,26 +1,106 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ["user", "admin"],
-    },
+{
+  name:{
+    type:String,
+    required:[true,"Full Name is required"],
+    trim:true,
+    minlength:[3,"Name must be at least 3 characters"]
   },
-  { timestamps: true },
+
+  email:{
+    type:String,
+    required:[true,"Email is required"],
+    unique:true,
+    lowercase:true,
+    trim:true,
+    match:[/\S+@\S+\.\S+/,"Please enter a valid email"]
+  },
+
+  password:{
+    type:String,
+    required:[true,"Password is required"],
+    minlength:8
+  },
+
+  photo:{
+    type:String,
+    default:"https://i.pravatar.cc/100"
+  },
+
+  rank:{
+    type:String,
+    default:"Beginner"
+  },
+
+  xp:{
+    type:Number,
+    default:0
+  },
+
+  quizzes:{
+    type:Number,
+    default:0
+  },
+
+  score:{
+    type:Number,
+    default:0
+  },
+
+  streak:{
+    type:Number,
+    default:0
+  },
+
+  joined:{
+    type:String,
+    default: () => {
+      const date = new Date();
+      return date.toLocaleString("default",{month:"short",year:"numeric"});
+    }
+  },
+
+  role:{
+    type:String,
+    enum:["student","admin","mentor"],
+    default:"student"
+  },
+
+  agreeToTerms:{
+    type:Boolean,
+    required:true
+  }
+
+},
+{ timestamps:true }
 );
 
-module.exports = mongoose.model("User", userSchema);
+
+// HASH PASSWORD
+userSchema.pre("save", async function(){
+
+  if(!this.isModified("password")){
+    return next();
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+
+});
+
+
+// COMPARE PASSWORD
+userSchema.methods.comparePassword = async function(password){
+  return bcrypt.compare(password,this.password);
+};
+
+
+// CREATE MODEL
+const User = mongoose.model("User", userSchema);
+
+
+// EXPORT MODEL
+export default User;

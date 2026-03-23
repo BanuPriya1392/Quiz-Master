@@ -1,30 +1,62 @@
-const express = require("express");
-const dotenv = require("dotenv");
-const cors = require("cors");
+// import required packages
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
 
-const connectDB = require("./src/config/database");
-const userRoutes = require("./src/routes/authRoutes");
+// import database connection
+import connectDB from "./src/config/database.js";
 
-// Load environment variables FIRST
+// import routes
+import authRoutes from "./src/routes/authRoutes.js";
+
+// user routes
+import userRoutes from "./src/routes/userRoutes.js";
+
+// Quiz Routes
+import quizRoutes from "./src/routes/quizRoutes.js";
+
+//Import user quiz routes
+import userQuizRoutes from "./src/routes/userQuizRoutes.js";
+
+import quizSessionRoutes from "./src/routes/quizSession.Routes.js";
+
+// Load environment variables
 dotenv.config();
 
-// Initialize express
+// Initialize express app
 const app = express();
 
-// Middleware
-app.use(express.json());
-app.use(cors());
-
-// Connect to MongoDB
+// Connect MongoDB
 connectDB();
+
+// Middleware
+app.use(express.json()); // Read JSON body
+
+// CORS configuration (important for React frontend)
+app.use(
+  cors({
+    origin: "http://localhost:5173", // React frontend URL
+    credentials: true,
+  }),
+);
+
+// Routes
+app.use("/api/auth", authRoutes);
+
+//user routes
+app.use("/api/user", userRoutes);
+
+// Quiz route
+app.use("/api/mentor/quiz", quizRoutes);
+
+app.use("/api/user/quiz", userQuizRoutes);
+
+app.use("/api/quiz/session", quizSessionRoutes);
 
 // Test route
 app.get("/", (req, res) => {
-  res.send("Quiz API is running...");
+  res.send("Authentication API Running");
 });
-
-// API Routes
-app.use("/api/users", userRoutes);
 
 // Port
 const PORT = process.env.PORT || 5000;
