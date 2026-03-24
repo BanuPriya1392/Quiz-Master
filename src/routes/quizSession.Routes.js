@@ -3,7 +3,7 @@ import {
   startQuizSession,
   completeQuizSession,
 } from "../controllers/quizSession.controller.js";
-import { verifyToken, isStudent } from "../middlewares/authMiddleware.js"; // ✅ isStudent import
+import { verifyToken, isStudent } from "../middlewares/authMiddleware.js"; //  isStudent import
 
 const router = express.Router();
 
