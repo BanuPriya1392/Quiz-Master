@@ -78,12 +78,10 @@ const userSchema = new mongoose.Schema(
 { timestamps:true }
 );
 
-
-// HASH PASSWORD
+// ✅ FIXED password hashing
 userSchema.pre("save", async function(){
-
   if(!this.isModified("password")){
-    return next();
+    return ;
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -91,16 +89,10 @@ userSchema.pre("save", async function(){
 
 });
 
-
-// COMPARE PASSWORD
+// compare password
 userSchema.methods.comparePassword = async function(password){
   return bcrypt.compare(password,this.password);
 };
 
-
-// CREATE MODEL
 const User = mongoose.model("User", userSchema);
-
-
-// EXPORT MODEL
 export default User;
