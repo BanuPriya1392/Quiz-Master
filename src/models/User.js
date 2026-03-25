@@ -78,7 +78,7 @@ const userSchema = new mongoose.Schema(
 { timestamps:true }
 );
 
-// ✅ FIXED password hashing
+// FIXED password hashing
 userSchema.pre("save", async function(){
   if(!this.isModified("password")){
     return ;

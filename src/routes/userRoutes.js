@@ -10,16 +10,16 @@ import { verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-//  CREATE USER (PUBLIC)
+// CREATE USER
 router.post("/register", createUser);
 
-// GET PROFILE
+//  GET PROFILE
 router.get("/profile", verifyToken, getUserProfile);
 
-//  UPDATE PROFILE
+// UPDATE PROFILE
 router.put("/profile", verifyToken, updateUserProfile);
 
-//  DELETE PROFILE
+// DELETE PROFILE
 router.delete("/profile", verifyToken, deleteUser);
 
 export default router;
