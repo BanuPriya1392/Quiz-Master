@@ -13,7 +13,7 @@ export const getQuizQuestions = async (req, res, next) => {
       .select("-correct -tip -createdAt -updatedAt") // hide sensitive fields
       .sort({ createdAt: 1 });
 
-    // ❌ No questions available
+    //  No questions available
     if (questions.length === 0) {
       return res.status(404).json({
         success: false,
@@ -21,7 +21,7 @@ export const getQuizQuestions = async (req, res, next) => {
       });
     }
 
-    // ❌ Not enough questions
+    // Not enough questions
     if (questions.length < 10) {
       return res.status(400).json({
         success: false,
