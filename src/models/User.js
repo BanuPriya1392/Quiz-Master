@@ -22,8 +22,20 @@ const userSchema = new mongoose.Schema(
   password:{
     type:String,
     required:[true,"Password is required"],
-    minlength:8
+    minlength:[10,"Password must be at least 10 characters"]
   },
+
+  // // Not stored in DB (only validation)
+  // confirmPassword:{
+  //   type:String,
+  //   required:[true,"Confirm Password is required"],
+  //   validate:{
+  //     validator:function(value){
+  //       return value === this.password;
+  //     },
+  //     message:"Passwords do not match"
+  //   }
+  // },
 
   photo:{
     type:String,
@@ -63,10 +75,16 @@ const userSchema = new mongoose.Schema(
     }
   },
 
-  role:{
-    type:String,
-    enum:["student","admin","mentor"],
-    default:"student"
+  role: {
+    type: String,
+    enum: ["learner", "mentor", "admin"],
+    default: "learner"
+  },
+
+  status: {
+    type: String,
+    enum: ["active", "blocked"],
+    default: "active"
   },
 
   agreeToTerms:{
@@ -79,28 +97,27 @@ const userSchema = new mongoose.Schema(
 );
 
 
-// HASH PASSWORD
-userSchema.pre("save", async function(){
 
-  if(!this.isModified("password")){
-    return next();
-  }
+// Hash password
+userSchema.pre("save", async function(){
+  if(!this.isModified("password")) return;
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 
+  // Remove confirmPassword before saving
+  this.confirmPassword = undefined;
+
+
 });
 
 
-// COMPARE PASSWORD
+
+// Compare password
 userSchema.methods.comparePassword = async function(password){
   return bcrypt.compare(password,this.password);
 };
 
 
-// CREATE MODEL
 const User = mongoose.model("User", userSchema);
-
-
-// EXPORT MODEL
 export default User;

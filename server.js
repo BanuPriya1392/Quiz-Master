@@ -8,17 +8,11 @@ import connectDB from "./src/config/database.js";
 
 // import routes
 import authRoutes from "./src/routes/authRoutes.js";
-
-// user routes
 import userRoutes from "./src/routes/userRoutes.js";
-
-// Quiz Routes
 import quizRoutes from "./src/routes/quizRoutes.js";
-
-//Import user quiz routes
 import userQuizRoutes from "./src/routes/userQuizRoutes.js";
-
 import quizSessionRoutes from "./src/routes/quizSession.Routes.js";
+import adminRoutes from "./src/routes/adminRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -30,32 +24,29 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(express.json()); // Read JSON body
+app.use(express.json());
 
-// CORS configuration (important for React frontend)
 app.use(
   cors({
-    origin: "http://localhost:5173", // React frontend URL
+    origin: "http://localhost:5173",
     credentials: true,
-  }),
+  })
 );
 
 // Routes
 app.use("/api/auth", authRoutes);
 
-//user routes
-app.use("/api/user", userRoutes);
+// FIXED HERE
+app.use("/api/users", userRoutes);
 
-// Quiz route
 app.use("/api/mentor/quiz", quizRoutes);
-
-app.use("/api/user/quiz", userQuizRoutes);
-
+app.use("/api/users/quiz", userQuizRoutes);
 app.use("/api/quiz/session", quizSessionRoutes);
+app.use("/api/admin/users", adminRoutes);
 
 // Test route
 app.get("/", (req, res) => {
-  res.send("Authentication API Running");
+  res.send("Server Running Successfully");
 });
 
 // Port
