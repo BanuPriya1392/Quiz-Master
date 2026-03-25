@@ -90,7 +90,7 @@ export const getUsers = async (req, res) => {
 
 
 
-// ✅ 3. Get Single User
+//  3. Get Single User
 export const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -109,7 +109,7 @@ export const getUserById = async (req, res) => {
 
 
 
-// ✅ 4. Update Status
+// 4. Update Status
 export const updateUserStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -142,7 +142,7 @@ export const updateUserStatus = async (req, res) => {
 
 
 
-// ✅ 5. Update Role
+// 5. Update Role
 export const updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;

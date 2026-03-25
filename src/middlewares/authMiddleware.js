@@ -50,7 +50,7 @@ export const isMentor = (req, res, next) => {
 
 /* MIDDLEWARE 3 — isStudent */
 export const isStudent = (req, res, next) => {
-  if (req.user.role !== "student") {
+  if (req.user.role !== "learner") {
     return res.status(403).json({
       success: false,
       message: "Access denied. Only students can attend the quiz.",

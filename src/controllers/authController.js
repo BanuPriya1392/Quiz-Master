@@ -37,9 +37,9 @@ export const registerUser = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
-
+ 
     return sendResponse(res, 201, true, "User registered successfully", {
-      token,
+    
       user: {
         id: user._id,
         name: user.name,
