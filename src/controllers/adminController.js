@@ -32,6 +32,7 @@ export const createUser = async (req, res) => {
       email,
       password,
       role: role || "learner",
+      status: "active", 
       agreeToTerms
     });
 
@@ -46,7 +47,6 @@ export const createUser = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
 
 
 //  2. Get All Users
@@ -89,7 +89,6 @@ export const getUsers = async (req, res) => {
 };
 
 
-
 //  3. Get Single User
 export const getUserById = async (req, res) => {
   try {
@@ -108,8 +107,7 @@ export const getUserById = async (req, res) => {
 };
 
 
-
-// 4. Update Status
+// 4. Update Status (BLOCK / UNBLOCK)
 export const updateUserStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -130,7 +128,7 @@ export const updateUserStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Status updated",
+      message: `User ${status} successfully`,
       user
     });
 
@@ -139,7 +137,6 @@ export const updateUserStatus = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
 
 
 // 5. Update Role
@@ -170,8 +167,7 @@ export const updateUserRole = async (req, res) => {
 };
 
 
-
-// ✅ 6. Delete User (FIXED ERROR)
+// 6. Delete User
 export const deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);

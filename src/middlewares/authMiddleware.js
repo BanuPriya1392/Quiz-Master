@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
+import User from "../models/User.js"; 
 
 // MIDDLEWARE 1 — verifyToken
-export const verifyToken = (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -16,11 +17,33 @@ export const verifyToken = (req, res, next) => {
     // "Bearer <token>" - token
     const token = authHeader.split(" ")[1];
 
-    //  JWT_SECRET
+    // JWT_SECRET
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // NEW: Check user from DB
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found. Please login again.",
+      });
+    }
+
+    // BLOCK CHECK
+    if (user.status === "blocked") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is blocked. Access denied.",
+      });
+    }
+
     // decoded user id
-    req.user = decoded; // { id, email, role }
+    req.user = {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+    };
 
     next();
   } catch (err) {
