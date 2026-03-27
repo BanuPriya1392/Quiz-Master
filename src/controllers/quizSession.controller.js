@@ -1,5 +1,5 @@
 import QuizSession from "../models/quizSession.model.js";
-import Question from "../models/Quiz.js";
+import Question from "../models/QuizQuestions.js";
 
 /* ─────────────────────────────────────────────────────────────
    POST /api/quiz/start

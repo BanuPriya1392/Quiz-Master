@@ -1,4 +1,4 @@
-import Question from "../models/Quiz.js";
+import Question from "../models/QuizQuestions.js";
 import QuizAttempt from "../models/QuizAttempt.js";
 
 /* ─────────────────────────────────────────────────────────────
