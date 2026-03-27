@@ -1,6 +1,7 @@
 import { body, param, query, validationResult } from "express-validator";
 import mongoose from "mongoose";
-import Question from "../models/Quiz.js";
+import Question from "../models/QuizQuestions.js";
+import QuizCollection from "../models/QuizCollection.js";
 
 /* ── collect errors → 422 */
 export const validate = (req, res, next) => {
@@ -109,21 +110,42 @@ const tipField = body("tip")
   .withMessage("Tip must be between 10 and 500 characters.");
 
 /* ── business rule: max 10 questions PER TITLE ← UPDATED */
+// export const maxTenQuestionsPerTitle = async (req, res, next) => {
+//   try {
+//     const { title } = req.body;
+//     if (!title) return next(); // title validation catches this
+
+//     const count = await Question.countDocuments({
+//       title: { $regex: new RegExp(`^${title.trim()}$`, "i") }, // case-insensitive
+//     });
+
+//     if (count >= 10) {
+//       return res.status(400).json({
+//         success: false,
+//         message: `"${title}" quiz already has 10 questions. Delete one before adding a new question.`,
+//       });
+//     }
+//     next();
+//   } catch (err) {
+//     next(err);
+//   }
+// };
+
 export const maxTenQuestionsPerTitle = async (req, res, next) => {
   try {
-    const { title } = req.body;
-    if (!title) return next(); // title validation catches this
+    const { collectionId } = req.body;
 
-    const count = await Question.countDocuments({
-      title: { $regex: new RegExp(`^${title.trim()}$`, "i") }, // case-insensitive
-    });
+    if (!collectionId) return next();
+
+    const count = await Question.countDocuments({ collectionId });
 
     if (count >= 10) {
       return res.status(400).json({
         success: false,
-        message: `"${title}" quiz already has 10 questions. Delete one before adding a new question.`,
+        message: "This quiz already has 10 questions. Delete one before adding a new question.",
       });
     }
+
     next();
   } catch (err) {
     next(err);
@@ -149,8 +171,8 @@ export const validateTitleQuery = [
 
 // POST — title field 
 export const validateCreate = [
-  titleField,           // ← NEW
-  maxTenQuestionsPerTitle, // ← per title check
+  titleField,         
+  maxTenQuestionsPerTitle, 
   questionField,
   ...optionsField,
   correctField,
@@ -171,5 +193,82 @@ export const validateUpdate = [
   correctField,
   correctMatchesOption,
   tipField,
+  validate,
+];
+
+/* ─────────────────────────────────────────────
+   BULK CREATE VALIDATOR
+───────────────────────────────────────────── */
+export const validateBulkCreate = [
+  body("questions")
+    .exists()
+    .withMessage("Questions array is required.")
+    .isArray({ min: 1 })
+    .withMessage("Questions must be a non-empty array."),
+
+  body("questions.*.title")
+    .exists({ checkFalsy: true })
+    .withMessage("Title is required."),
+
+  body("questions.*.question")
+    .exists({ checkFalsy: true })
+    .withMessage("Question is required."),
+
+  body("questions.*.options")
+    .isArray({ min: 4, max: 4 })
+    .withMessage("Each question must have exactly 4 options."),
+
+  body("questions.*.correct")
+    .isIn(["A", "B", "C", "D"])
+    .withMessage("Correct must be one of A, B, C, D."),
+
+  body("questions.*.tip")
+    .exists({ checkFalsy: true })
+    .withMessage("Tip is required."),
+
+  validate,
+];
+
+/* ─────────────────────────────────────────────
+   COLLECTION VALIDATION
+───────────────────────────────────────────── */
+
+// title for collection
+const collectionTitleField = body("title")
+  .exists({ checkFalsy: true })
+  .withMessage("Collection title is required.")
+  .trim()
+  .isString()
+  .withMessage("Title must be a character.")
+  .isLength({ min: 3, max: 100 })
+  .withMessage("Title must be between 3 and 100 characters.");
+
+// description
+const descriptionField = body("description")
+  .exists({ checkFalsy: true })
+  .withMessage("Description is required.")
+  .trim()
+  .isString()
+  .withMessage("Description must be a charater.")
+  .isLength({ min: 10, max: 500 })
+  .withMessage("Description must be between 10 and 500 characters.");
+
+
+  const uniqueCollectionTitle = body("title").custom(async (title) => {
+  const existing = await QuizCollection.findOne({
+    title: { $regex: new RegExp(`^${title.trim()}$`, "i") }, 
+  });
+
+  if (existing) {
+    throw new Error("Collection title already exists.");
+  }
+
+  return true;
+});
+/* ── Create Collection Validator */
+export const validateCreateCollection = [
+  collectionTitleField,
+  uniqueCollectionTitle,
+  descriptionField,
   validate,
 ];

@@ -25,18 +25,6 @@ const userSchema = new mongoose.Schema(
     minlength:[10,"Password must be at least 10 characters"]
   },
 
-  // // Not stored in DB (only validation)
-  // confirmPassword:{
-  //   type:String,
-  //   required:[true,"Confirm Password is required"],
-  //   validate:{
-  //     validator:function(value){
-  //       return value === this.password;
-  //     },
-  //     message:"Passwords do not match"
-  //   }
-  // },
-
   photo:{
     type:String,
     default:"https://i.pravatar.cc/100"
@@ -110,8 +98,6 @@ userSchema.pre("save", async function(){
 
 
 });
-
-
 
 // Compare password
 userSchema.methods.comparePassword = async function(password){
