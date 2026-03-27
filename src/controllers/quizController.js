@@ -1,74 +1,77 @@
 import Question from "../models/Quiz.js";
+import QuizCollection from "../models/QuizCollection.js";
 
-/* ─────────────────────────────────────────────────────────────
-   GET /api/mentor/quiz
-───────────────────────────────────────────────────────────── */
+// GET /api/mentor/quiz
 export const getAllQuestions = async (req, res, next) => {
   try {
-    const { title } = req.query;
-    const filter = { createdBy: req.user.id };  
+    const { quizId, category, difficulty } = req.query;
 
-    if (title) {
-      filter.title = { $regex: new RegExp(`^${title.trim()}$`, "i") };
-    }
+    const filter = { createdBy: req.user.id };
 
-    const questions = await Question.find(filter).sort({ createdAt: 1 });
+    if (quizId) filter.quizId = quizId;
+    if (category && category !== "All") filter.category = category;
+    if (difficulty && difficulty !== "All") filter.difficulty = difficulty;
 
-    const availableTitles = await Question.distinct("title", { createdBy: req.user.id }); 
+    const questions = await Question.find(filter)
+      .populate("quizId", "title")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
       total: questions.length,
-      availableTitles,
       data: questions,
     });
   } catch (err) {
     next(err);
   }
 };
-/* ─────────────────────────────────────────────────────────────
-   GET /api/mentor/quiz/:id
-───────────────────────────────────────────────────────────── */
+
+// GET /api/mentor/quiz/:id
 export const getQuestionById = async (req, res, next) => {
   try {
-    const question = await Question.findOne({ 
-  _id: req.params.id, 
-  createdBy: req.user.id 
-});
+    const question = await Question.findOne({
+      _id: req.params.id,
+      createdBy: req.user.id,
+    }).populate("quizId", "title");
+
     if (!question) {
       return res.status(404).json({
         success: false,
-        message: `Question "${req.params.id}" not found.`,
+        message: "Question not found",
       });
     }
+
     res.status(200).json({ success: true, data: question });
   } catch (err) {
     next(err);
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   POST /api/mentor/quiz
-   Body: { title, question, options, correct, tip }
-───────────────────────────────────────────────────────────── */
+// POST /api/mentor/quiz
 export const createQuestion = async (req, res, next) => {
   try {
-     
-    const { title, question, options, correct, tip } = req.body;
+    const { quizId, category, difficulty, question, options, correct, tip } =
+      req.body;
 
     const created = await Question.create({
-      title:     title.trim(),
-      question:  question.trim(),
-
-      options:   options.map((o) => ({ id: o.id, text: o.text.trim() })),
+      quizId,
+      category,
+      difficulty,
+      question: question.trim(),
+      options: options.map((o) => ({ id: o.id, text: o.text.trim() })),
       correct,
-      tip:       tip.trim(),
-      createdBy: req.user.id,  
+      tip: tip.trim(),
+      createdBy: req.user.id,
+    });
+
+    // Update totalQuestions count
+    await QuizCollection.findByIdAndUpdate(quizId, {
+      $inc: { totalQuestions: 1 },
     });
 
     res.status(201).json({
       success: true,
-      message: `Question added to "${title}" quiz successfully.`,
+      message: "Question created successfully",
       data: created,
     });
   } catch (err) {
@@ -76,114 +79,105 @@ export const createQuestion = async (req, res, next) => {
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   PUT /api/mentor/quiz/:id
-───────────────────────────────────────────────────────────── */
+// PUT /api/mentor/quiz/:id
 export const updateQuestion = async (req, res, next) => {
   try {
-    const { title, question, options, correct, tip } = req.body;
+    const { category, difficulty, question, options, correct, tip } = req.body;
 
-    const updated = await Question.findByIdAndUpdate(
-       { _id: req.params.id, createdBy: req.user.id },
+    const updated = await Question.findOneAndUpdate(
+      { _id: req.params.id, createdBy: req.user.id },
       {
-        title:    title.trim(),
+        category,
+        difficulty,
         question: question.trim(),
-        options:  options.map((o) => ({ id: o.id, text: o.text.trim() })),
+        options: options.map((o) => ({ id: o.id, text: o.text.trim() })),
         correct,
-        tip:      tip.trim(),
+        tip: tip.trim(),
       },
-      {  returnDocument: "after", runValidators: true }
+      { new: true, runValidators: true }
     );
 
     if (!updated) {
       return res.status(404).json({
         success: false,
-        message: `Question "${req.params.id}" not found.`,
+        message: "Question not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Question updated successfully.",
-      data:    updated,
+      message: "Updated successfully",
+      data: updated,
     });
   } catch (err) {
     next(err);
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   DELETE /api/mentor/quiz/:id
-───────────────────────────────────────────────────────────── */
+// DELETE /api/mentor/quiz/:id
 export const deleteQuestion = async (req, res, next) => {
   try {
-    const deleted = await Question.findByIdAndDelete( {_id: req.params.id,
-      createdBy: req.user.id, 
+    const deleted = await Question.findOneAndDelete({
+      _id: req.params.id,
+      createdBy: req.user.id,
     });
+
     if (!deleted) {
       return res.status(404).json({
         success: false,
-        message: `Question "${req.params.id}" not found.`,
+        message: "Question not found",
       });
     }
+
+    // Update totalQuestions count
+    await QuizCollection.findByIdAndUpdate(deleted.quizId, {
+      $inc: { totalQuestions: -1 },
+    });
+
     res.status(200).json({
       success: true,
-      message: `Question deleted from "${deleted.title}" quiz successfully.`,
+      message: "Deleted successfully",
     });
   } catch (err) {
     next(err);
   }
 };
 
-/* POST /api/mentor/quiz/bulk */
+// POST /api/mentor/quiz/bulk
 export const createBulkQuestions = async (req, res, next) => {
   try {
-    const { title, questions } = req.body;
-    // questions = array of { question, options, correct, tip }
+    const { quizId, category, difficulty, questions } = req.body;
 
     if (!Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Questions array is required.",
+        message: "Questions array required",
       });
     }
 
-    if (questions.length > 10) {
-      return res.status(400).json({
-        success: false,
-        message: "Maximum 10 questions allowed per bulk insert.",
-      });
-    }
-
-    // Existing count check
-    const existingCount = await Question.countDocuments({
-      title: { $regex: new RegExp(`^${title.trim()}$`, "i") },
-      createdBy: req.user.id,
-    });
-
-    if (existingCount + questions.length > 10) {
-      return res.status(400).json({
-        success: false,
-        message: `"${title}" already has ${existingCount} questions. You can add only ${10 - existingCount} more.`,
-      });
-    }
-
-    // All questions
     const docs = questions.map((q) => ({
-      title:     title.trim(),
-      question:  q.question.trim(),
-      options:   q.options.map((o) => ({ id: o.id, text: o.text.trim() })),
-      correct:   q.correct,
-      tip:       q.tip.trim(),
+      quizId,
+      category,
+      difficulty,
+      question: q.question.trim(),
+      options: q.options.map((o) => ({
+        id: o.id,
+        text: o.text.trim(),
+      })),
+      correct: q.correct,
+      tip: q.tip.trim(),
       createdBy: req.user.id,
     }));
 
     const created = await Question.insertMany(docs);
 
+    await QuizCollection.findByIdAndUpdate(quizId, {
+      $inc: { totalQuestions: created.length },
+    });
+
     res.status(201).json({
       success: true,
-      message: `${created.length} questions added to "${title}" successfully.`,
-      data: created,
+      message: `${created.length} questions added`,
     });
   } catch (err) {
     next(err);

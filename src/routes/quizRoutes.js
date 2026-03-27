@@ -5,28 +5,69 @@ import {
   createQuestion,
   updateQuestion,
   deleteQuestion,
+  createBulkQuestions,
 } from "../controllers/quizController.js";
+
 import {
   validateCreate,
   validateId,
   validateUpdate,
 } from "../validators/quizValidator.js";
+
 import { verifyToken, isMentor } from "../middlewares/authMiddleware.js";
-import { createBulkQuestions } from "../controllers/quizController.js";
 
 const router = express.Router();
 
-/* PUBLIC —(students + mentors) */
-router.get("/", verifyToken,isMentor, getAllQuestions);
-router.get("/:id", validateId, getQuestionById);
+// All routes are protected and only accessible by mentors
 
-/*  PROTECTED — Mentor login token 
-   Order: verifyToken → isMentor → validate → controller */
-router.post(  "/",    verifyToken, isMentor, validateCreate, createQuestion);
-router.put(   "/:id", verifyToken, isMentor, validateUpdate, updateQuestion);
-router.delete("/:id", verifyToken, isMentor, validateId,     deleteQuestion);
+// GET ALL QUESTIONS
+router.get(
+  "/",
+  verifyToken,
+  isMentor,
+  getAllQuestions
+);
 
-// /bulk route — /:id
-router.post("/bulk", verifyToken, isMentor, createBulkQuestions);
+// GET QUESTION BY ID
+router.get(
+  "/:id",
+  verifyToken,
+  isMentor,
+  validateId,
+  getQuestionById
+);
+// CREATE QUESTION
+router.post(
+  "/",
+  verifyToken,
+  isMentor,
+  validateCreate,
+  createQuestion
+);
+// CREATE BULK QUESTIONS
+router.post(
+  "/bulk",
+  verifyToken,
+  isMentor,
+  createBulkQuestions
+);
+
+// UPDATE QUESTION
+router.put(
+  "/:id",
+  verifyToken,
+  isMentor,
+  validateUpdate,
+  updateQuestion
+);
+
+// DELETE QUESTION
+router.delete(
+  "/:id",
+  verifyToken,
+  isMentor,
+  validateId,
+  deleteQuestion
+);
 
 export default router;

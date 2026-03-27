@@ -1,86 +1,114 @@
 import mongoose from "mongoose";
 
-// ── Option sub-schema
+//Option Schema
 const optionSchema = new mongoose.Schema(
   {
     id: {
       type: String,
       enum: ["A", "B", "C", "D"],
-      required: [true, "Option id is required."],
+      required: true,
     },
     text: {
       type: String,
+      required: true,
       trim: true,
-      required: [true, "Option text is required."],
-      maxlength: [200, "Option text must not exceed 200 characters."],
+      maxlength: 200,
     },
   },
   { _id: false }
 );
 
-// ── Question schema
+// Main Question Schema
 const questionSchema = new mongoose.Schema(
   {
-    // ── NEW: Quiz Title (e.g. "JavaScript", "HTML", "CSS")
-    title: {
-      type: String,
-      required: [true, "Quiz title is required."],
-      trim: true,
-      minlength: [2,   "Title must be at least 2 characters."],
-      maxlength: [100, "Title must not exceed 100 characters."],
+    // NEW: Quiz Collection Reference (IMPORTANT)
+    quizId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "QuizCollection",
+      required: true,
+      index: true,
     },
 
+    //  NEW: Category (for filtering + analytics)
+    category: {
+      type: String,
+      required: true,
+      enum: [
+        "Technology",
+        "Science",
+        "Math",
+        "Programming",
+        "AI",
+        "General",
+      ],
+      index: true,
+    },
+
+    //  NEW: Difficulty Level
+    difficulty: {
+      type: String,
+      enum: ["easy", "medium", "hard"],
+      default: "medium",
+      index: true,
+    },
+
+    // Question
     question: {
       type: String,
-      required: [true, "Question is required."],
+      required: true,
       trim: true,
-      minlength: [10,  "Question must be at least 10 characters."],
-      maxlength: [500, "Question must not exceed 500 characters."],
+      minlength: 10,
+      maxlength: 500,
     },
 
+    // Options
     options: {
       type: [optionSchema],
-      validate: [
-        {
-          validator: (opts) => opts.length === 4,
-          message: "Options must contain exactly 4 items.",
-        },
-        {
-          validator: (opts) => {
-            const ids = opts.map((o) => o.id);
-            const allPresent = ["A", "B", "C", "D"].every((id) =>
-              ids.includes(id)
-            );
-            const noDuplicates = new Set(ids).size === 4;
-            return allPresent && noDuplicates;
-          },
-          message:
-            "Options must contain exactly one entry each for A, B, C, and D.",
-        },
-      ],
-    },
-
-    correct: {
-      type: String,
-      required: [true, "Correct answer is required."],
-      enum: {
-        values: ["A", "B", "C", "D"],
-        message: "Correct must be one of A, B, C, D.",
+      validate: {
+        validator: (opts) => opts.length === 4,
+        message: "Exactly 4 options required",
       },
     },
 
+    // Correct Answer
+    correct: {
+      type: String,
+      enum: ["A", "B", "C", "D"],
+      required: true,
+    },
+
+    // Explanation
     tip: {
       type: String,
-      required: [true, "Tip/explanation is required."],
+      required: true,
       trim: true,
-      minlength: [10,  "Tip must be at least 10 characters."],
-      maxlength: [500, "Tip must not exceed 500 characters."],
     },
+
+    // Analytics Support
+    attempts: {
+      type: Number,
+      default: 0,
+    },
+
+    correctCount: {
+      type: Number,
+      default: 0,
+    },
+
+    // Creator
     createdBy: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "User",
-  required: true,
-},
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    // Status (Admin control)
+    status: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Active",
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -88,17 +116,19 @@ const questionSchema = new mongoose.Schema(
   }
 );
 
-// ── Cross-field: 'correct' must be one of the supplied option ids
-questionSchema.pre("validate", async function () {
-  if (this.options && this.correct) {
-    const ids = this.options.map((o) => o.id);
-    if (!ids.includes(this.correct)) {
-      this.invalidate(
-        "correct",
-        `Correct answer "${this.correct}" does not match any of the provided option ids.`
-      );
-    }
+// Indexes for performance (VERY IMPORTANT for 300+ questions)
+questionSchema.index({ quizId: 1, difficulty: 1 });
+questionSchema.index({ category: 1, status: 1 });
+
+// Validate correct answer exists in options
+questionSchema.pre("validate", function () {
+  const ids = this.options.map((o) => o.id);
+  if (!ids.includes(this.correct)) {
+    return next(
+      new Error("Correct answer must match one of the options")
+    );
   }
+ 
 });
 
 const Question = mongoose.model("Question", questionSchema);
