@@ -1,4 +1,6 @@
 import QuizCollection from "../models/QuizCollection.js";
+import Module from "../models/Module.js";      
+import Question from "../models/QuizQuestions.js";
 
 //  Create Quiz Collection
 export const createCollection = async (req, res) => {
@@ -43,30 +45,40 @@ export const getCollectionById = async (req, res) => {
     const { id } = req.params;
 
     const collection = await QuizCollection.findById(id);
-
     if (!collection) {
       return res.status(404).json({ message: "Collection not found" });
     }
 
+   
+    const modules = await Module.find({ collectionId: id }).sort({ order: 1 });
+
     res.status(200).json({
       success: true,
-      data: collection,
+      data: {
+        ...collection.toObject(),
+        modules, 
+      },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
 //  Delete Collection
 export const deleteCollection = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await QuizCollection.findByIdAndDelete(id);
+    const collection = await QuizCollection.findByIdAndDelete(id);
+    if (!collection) {
+      return res.status(404).json({ success: false, message: "Collection not found" });
+    }
+
+    await Module.deleteMany({ collectionId: id });     
+    await Question.deleteMany({ collectionId: id });   
 
     res.status(200).json({
       success: true,
-      message: "Collection deleted successfully",
+      message: "Collection, modules and questions deleted successfully",
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

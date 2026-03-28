@@ -17,7 +17,7 @@ const quizCollectionSchema = new mongoose.Schema(
     },
      category: {
     type: String,
-    default: "General", // optional now
+    default: "General", 
   },
 
   difficulty: {

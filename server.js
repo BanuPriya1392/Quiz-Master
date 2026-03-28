@@ -15,6 +15,8 @@ import adminRoutes from "./src/routes/adminRoutes.js";
 import quizCollectionsRoutes from "./src/routes/quizCollectionsRoutes.js";
 import questionRoutes from "./src/routes/questionRoutes.js";
 import quizTestRoutes from "./src/routes/quizTestRoutes.js";
+import moduleRoutes from "./src/routes/moduleRoutes.js";
+
 
 // ENV
 dotenv.config();
@@ -45,7 +47,13 @@ app.use("/api/quiz-collections", quizCollectionsRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/quiz", quizTestRoutes);
 
+<<<<<<< HEAD
 // Test
+=======
+app.use("/api/modules", moduleRoutes);
+
+// ─── Test Route ─────────────────────────────────────
+>>>>>>> ec54cf1 (added modules inside quiz collections)
 app.get("/", (req, res) => {
   res.send("Server Running Successfully");
 });
