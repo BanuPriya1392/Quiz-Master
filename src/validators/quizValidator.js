@@ -28,16 +28,23 @@ export const validateId = [
 //quiz collection creation validation
 export const validateCreateCollection = [
   body("title")
-    .notEmpty()
-    .withMessage("Title is required")
-    .isString()
-    .withMessage("Title must be string")
-    .isLength({ min: 2, max: 100 }),
+    .trim()
+    .notEmpty().withMessage("Title is required")
+    .isLength({ min: 2, max: 100 }).withMessage("Title must be 2-100 characters"),
 
   body("description")
     .optional()
-    .isString()
-    .withMessage("Description must be string"),
+    .trim()
+    .isString().withMessage("Description must be string")
+    .isLength({ max: 300 }).withMessage("Max 300 characters"),
+
+  body("category")
+    .optional()
+    .isString().withMessage("Category must be string"),
+
+  body("difficulty")
+    .optional()
+    .isIn(["easy", "medium", "hard"]).withMessage("Difficulty must be easy | medium | hard"),
 
   validate,
 ];

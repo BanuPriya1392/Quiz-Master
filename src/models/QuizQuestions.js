@@ -12,6 +12,15 @@ const questionSchema = new mongoose.Schema(
       ref: "QuizCollection",
       required: true,
     },
+    moduleId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Module",
+  default: null,
+},
+moduleName: {
+  type: String,
+  default: null, // "basics", "intermediate", etc.
+},
 
     question: {
       type: String,
