@@ -47,13 +47,9 @@ app.use("/api/quiz-collections", quizCollectionsRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/quiz", quizTestRoutes);
 
-<<<<<<< HEAD
-// Test
-=======
 app.use("/api/modules", moduleRoutes);
 
 // ─── Test Route ─────────────────────────────────────
->>>>>>> ec54cf1 (added modules inside quiz collections)
 app.get("/", (req, res) => {
   res.send("Server Running Successfully");
 });
