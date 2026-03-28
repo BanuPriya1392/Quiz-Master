@@ -1,6 +1,7 @@
 import QuizCollection from "../models/QuizCollection.js";
 import QuizSession from "../models/quizSession.model.js";
 
+//get quiz analytics with pagination, search, filter, sort
 export const getQuizAnalytics = async (req, res, next) => {
   try {
     const {
@@ -16,9 +17,6 @@ export const getQuizAnalytics = async (req, res, next) => {
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 5;
 
-    // ---------------------------
-    // 1. FILTER
-    // ---------------------------
     let matchQuery = {};
 
     if (search) {
@@ -36,15 +34,12 @@ export const getQuizAnalytics = async (req, res, next) => {
       matchQuery.status = status;
     }
 
-    // ---------------------------
-    // 2. AGGREGATION
-    // ---------------------------
     const analytics = await QuizCollection.aggregate([
       { $match: matchQuery },
 
       {
         $lookup: {
-          from: "quizsessions", // ⚠️ must match DB collection name
+          from: "quizsessions", 
           localField: "_id",
           foreignField: "quizId",
           as: "sessions",
@@ -81,9 +76,7 @@ export const getQuizAnalytics = async (req, res, next) => {
       },
     ]);
 
-    // ---------------------------
-    // 3. OVERVIEW
-    // ---------------------------
+    // OVERVIEW
     const totalQuizzes = analytics.length;
 
     const totalAttempts = analytics.reduce(
@@ -107,9 +100,7 @@ export const getQuizAnalytics = async (req, res, next) => {
           )
         : 0;
 
-    // ---------------------------
-    // 4. CHART DATA (Top 5)
-    // ---------------------------
+    // CHART DATA
     const chartData = [...analytics]
       .sort((a, b) => (b.attempts || 0) - (a.attempts || 0))
       .slice(0, 5)
@@ -121,9 +112,7 @@ export const getQuizAnalytics = async (req, res, next) => {
         attempts: quiz.attempts || 0,
       }));
 
-    // ---------------------------
-    // 5. PAGINATION
-    // ---------------------------
+    // PAGINATION
     const startIndex = (pageNum - 1) * limitNum;
 
     const paginatedData = analytics.slice(
@@ -131,9 +120,6 @@ export const getQuizAnalytics = async (req, res, next) => {
       startIndex + limitNum
     );
 
-    // ---------------------------
-    // 6. RESPONSE
-    // ---------------------------
     res.status(200).json({
       success: true,
       analyticsOverview: {
@@ -156,9 +142,10 @@ export const getQuizAnalytics = async (req, res, next) => {
   }
 };
 
+//get category analytics with total quizzes, attempts, success rate
 export const getCategoryAnalytics = async (req, res, next) => {
   try {
-    const categoryStats = await QuizCollection.aggregate([
+    const data = await QuizCollection.aggregate([
       {
         $lookup: {
           from: "quizsessions",
@@ -178,16 +165,9 @@ export const getCategoryAnalytics = async (req, res, next) => {
       {
         $group: {
           _id: "$category",
-
-          participation: { $sum: "$attempts" },
-
-          avgScore: { $avg: "$avgScore" },
-
           totalQuizzes: { $sum: 1 },
-
-          avgDifficulty: {
-            $push: "$difficulty",
-          },
+          totalAttempts: { $sum: "$attempts" },
+          avgScore: { $avg: "$avgScore" },
         },
       },
 
@@ -195,41 +175,30 @@ export const getCategoryAnalytics = async (req, res, next) => {
         $project: {
           _id: 0,
           category: "$_id",
-          participation: 1,
+          totalQuizzes: 1,
+          totalAttempts: 1,
           successRate: { $round: ["$avgScore", 0] },
-
-          // Pick most frequent difficulty (simple version)
-          avgDifficulty: {
-            $cond: [
-              { $gte: [{ $size: "$avgDifficulty" }, 1] },
-              { $arrayElemAt: ["$avgDifficulty", 0] },
-              "easy",
-            ],
-          },
         },
       },
 
-      {
-        $sort: { participation: -1 },
-      },
+      { $sort: { totalAttempts: -1 } },
     ]);
 
     res.status(200).json({
       success: true,
-      categoryAnalysis: categoryStats,
+      categoryAnalysis: data,
     });
-
   } catch (err) {
     console.error("Category Analytics Error:", err);
     next(err);
   }
 };
 
+//get performance trends for last 7 days with attempts and avg score
 export const getPerformanceTrends = async (req, res, next) => {
   try {
     const { days = 7 } = req.query;
 
-    // last N days filter
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - Number(days));
 
@@ -259,28 +228,26 @@ export const getPerformanceTrends = async (req, res, next) => {
         },
       },
 
-      {
-        $sort: { date: 1 },
-      },
+      { $sort: { date: 1 } },
     ]);
 
     res.status(200).json({
       success: true,
       performanceTrends: {
-        timeRange: `Last ${days} Days`,
-        chartData: trends,
+        range: `Last ${days} days`,
+        data: trends,
       },
     });
-
   } catch (err) {
     console.error("Performance Trends Error:", err);
     next(err);
   }
 };
 
+//get top 5 quizzes by attempts
 export const getTopQuizzes = async (req, res, next) => {
   try {
-    const topQuizzes = await QuizCollection.aggregate([
+    const top = await QuizCollection.aggregate([
       {
         $lookup: {
           from: "quizsessions",
@@ -304,20 +271,14 @@ export const getTopQuizzes = async (req, res, next) => {
         },
       },
 
-      {
-        $sort: { attempts: -1 },
-      },
-
-      {
-        $limit: 5,
-      },
+      { $sort: { attempts: -1 } },
+      { $limit: 5 },
     ]);
 
     res.status(200).json({
       success: true,
-      topQuizzes,
+      topQuizzes: top,
     });
-
   } catch (err) {
     console.error("Top Quizzes Error:", err);
     next(err);

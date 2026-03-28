@@ -1,32 +1,30 @@
 // server.js
 
-// ─── Import required packages ─────────────────────────
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 
-// ─── Import database connection ──────────────────────
+// DB
 import connectDB from "./src/config/database.js";
 
-// ─── Import routes ───────────────────────────────────
+// Routes
 import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import userQuizRoutes from "./src/routes/userQuizRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import quizCollectionsRoutes from "./src/routes/quizCollectionsRoutes.js";
-import questionRoutes from "./src/routes/questionRoutes.js"; // fixed for default export
+import questionRoutes from "./src/routes/questionRoutes.js";
 import quizTestRoutes from "./src/routes/quizTestRoutes.js";
 
-// ─── Load environment variables ──────────────────────
+// ENV
 dotenv.config();
 
-// ─── Initialize express app ─────────────────────────
 const app = express();
 
-// ─── Connect to MongoDB ─────────────────────────────
+// DB connect
 connectDB();
 
-// ─── Middleware ─────────────────────────────────────
+// Middleware
 app.use(express.json());
 app.use(
   cors({
@@ -35,25 +33,24 @@ app.use(
   })
 );
 
-// ─── API Routes ──────────────────────────────────────
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/users/quiz", userQuizRoutes);
-app.use("/api/admin/users", adminRoutes);
+
+// FIXED HERE
+app.use("/api/admin", adminRoutes);
+
 app.use("/api/quiz-collections", quizCollectionsRoutes);
-
-// Questions (Mentor adds questions)
 app.use("/api/questions", questionRoutes);
-
-// Quiz Test (Student side)
 app.use("/api/quiz", quizTestRoutes);
 
-// ─── Test Route ─────────────────────────────────────
+// Test
 app.get("/", (req, res) => {
   res.send("Server Running Successfully");
 });
 
-// ─── Error Handler Middleware ───────────────────────
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
@@ -62,7 +59,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ─── Start Server ───────────────────────────────────
+// Server start
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
