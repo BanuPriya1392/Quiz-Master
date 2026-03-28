@@ -1,8 +1,20 @@
 import express from "express";
-import { getQuizAnalytics } from "../controllers/adminAnalyticsController.js";
+import {
+  getAppOverview,
+  getQuizPerformance,
+  getUserPerformance,
+} from "../controllers/adminAnalyticsController.js";
+import { verifyToken, isAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/quiz-analytics", getQuizAnalytics);
+// App overview
+router.get("/overview", verifyToken, isAdmin, getAppOverview);
+
+// Per-quiz stats
+router.get("/quizzes/:quizId", verifyToken, isAdmin, getQuizPerformance);
+
+// Per-user stats
+router.get("/users/:userId", verifyToken, isAdmin, getUserPerformance);
 
 export default router;

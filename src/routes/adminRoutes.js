@@ -12,11 +12,11 @@ import {
 
 // ANALYTICS CONTROLLER
 import {
-  getQuizAnalytics,
-  getCategoryAnalytics,
-  getPerformanceTrends,
-  getTopQuizzes
+  getAppOverview,        // new
+  getQuizPerformance,    //  new
+  getUserPerformance     //  new
 } from "../controllers/adminAnalyticsController.js";
+
 // AUTH MIDDLEWARE
 import { verifyToken, isAdmin } from "../middlewares/authMiddleware.js";
 
@@ -49,11 +49,17 @@ router.delete("/users/:id", verifyToken, isAdmin, deleteUser);
    QUIZ ANALYTICS ROUTES
 ========================================= */
 
-// Main Analytics API
-router.get("/quiz-analytics", verifyToken, isAdmin, getQuizAnalytics);
-router.get("/quiz-analytics/categories", verifyToken, isAdmin, getCategoryAnalytics);
-router.get("/quiz-analytics/trends", verifyToken, isAdmin, getPerformanceTrends);
-router.get("/quiz-analytics/top-quizzes", verifyToken, isAdmin, getTopQuizzes);
 
+
+// ─── NEW ANALYTICS ENDPOINTS ─────────────────
+
+// App overview
+router.get("/analytics/overview", verifyToken, isAdmin, getAppOverview);
+
+// Per-quiz stats
+router.get("/analytics/quizzes/:quizId", verifyToken, isAdmin, getQuizPerformance);
+
+// Per-user stats
+router.get("/analytics/users/:userId", verifyToken, isAdmin, getUserPerformance);
 
 export default router;
