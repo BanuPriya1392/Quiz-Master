@@ -1,37 +1,33 @@
-// import required packages
+// server.js
+
+// ─── Import required packages ─────────────────────────
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 
-// import database connection
+// ─── Import database connection ──────────────────────
 import connectDB from "./src/config/database.js";
 
-// import routes
+// ─── Import routes ───────────────────────────────────
 import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
-
 import userQuizRoutes from "./src/routes/userQuizRoutes.js";
-import quizSessionRoutes from "./src/routes/quizSession.Routes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
-import quizCollectionRoutes from "./src/routes/quizCollectionRoutes.js";
-
-
-import quizCollectionRoutes from "./src/routes/quizCollectionsRoutes.js";
-import questionRoutes from "./src/routes/questionRoutes.js";
+import quizCollectionsRoutes from "./src/routes/quizCollectionsRoutes.js";
+import questionRoutes from "./src/routes/questionRoutes.js"; // fixed for default export
 import quizTestRoutes from "./src/routes/quizTestRoutes.js";
 
-// Load environment variables
+// ─── Load environment variables ──────────────────────
 dotenv.config();
 
-// Initialize express app
+// ─── Initialize express app ─────────────────────────
 const app = express();
 
-// Connect MongoDB
+// ─── Connect to MongoDB ─────────────────────────────
 connectDB();
 
-// Middleware
+// ─── Middleware ─────────────────────────────────────
 app.use(express.json());
-
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -39,22 +35,12 @@ app.use(
   })
 );
 
-// Routes
+// ─── API Routes ──────────────────────────────────────
 app.use("/api/auth", authRoutes);
-
-// FIXED HERE
 app.use("/api/users", userRoutes);
-
-// app.use("/api/mentor/quiz", quizRoutes);
 app.use("/api/users/quiz", userQuizRoutes);
-app.use("/api/quiz/session", quizSessionRoutes);
 app.use("/api/admin/users", adminRoutes);
-app.use("/api/quiz-collections", quizCollectionRoutes);
-
-
-
-// Quiz Collection (Mentor creates quizzes)
-app.use("/api/quiz-collection", quizCollectionRoutes);
+app.use("/api/quiz-collections", quizCollectionsRoutes);
 
 // Questions (Mentor adds questions)
 app.use("/api/questions", questionRoutes);
@@ -62,15 +48,22 @@ app.use("/api/questions", questionRoutes);
 // Quiz Test (Student side)
 app.use("/api/quiz", quizTestRoutes);
 
-// Test route
+// ─── Test Route ─────────────────────────────────────
 app.get("/", (req, res) => {
   res.send("Server Running Successfully");
 });
 
-// Port
-const PORT = process.env.PORT || 5000;
+// ─── Error Handler Middleware ───────────────────────
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Server Error",
+  });
+});
 
-// Start server
+// ─── Start Server ───────────────────────────────────
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

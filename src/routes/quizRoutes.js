@@ -6,6 +6,7 @@ import {
   updateQuestion,
   deleteQuestion,
   createBulkQuestions,
+  
 } from "../controllers/quizController.js";
 
 import {
@@ -14,49 +15,52 @@ import {
   validateUpdate,
 } from "../validators/quizValidator.js";
 
-import { verifyToken, isMentor } from "../middlewares/authMiddleware.js";
+//  Use correct exports from authMiddleware
+import { protect, authorizeRoles } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// All routes are protected and only accessible by mentors
+//all routes are protected, only mentor or admin can access
 
 // GET ALL QUESTIONS
 router.get(
   "/",
-  verifyToken,
-  isMentor,
+  protect,
+  authorizeRoles("mentor", "admin"),
   getAllQuestions
 );
 
-// GET QUESTION BY ID
+// GET QUESTION BY ID 
 router.get(
   "/:id",
-  verifyToken,
-  isMentor,
+  protect,
+  authorizeRoles("mentor", "admin"),
   validateId,
   getQuestionById
 );
+
 // CREATE QUESTION
 router.post(
   "/",
-  verifyToken,
-  isMentor,
+  protect,
+  authorizeRoles("mentor", "admin"),
   validateCreate,
   createQuestion
 );
-// CREATE BULK QUESTIONS
+
+// BULK CREATE
 router.post(
   "/bulk",
-  verifyToken,
-  isMentor,
+  protect,
+  authorizeRoles("mentor", "admin"),
   createBulkQuestions
 );
 
 // UPDATE QUESTION
 router.put(
   "/:id",
-  verifyToken,
-  isMentor,
+  protect,
+  authorizeRoles("mentor", "admin"),
   validateUpdate,
   updateQuestion
 );
@@ -64,8 +68,8 @@ router.put(
 // DELETE QUESTION
 router.delete(
   "/:id",
-  verifyToken,
-  isMentor,
+  protect,
+  authorizeRoles("mentor", "admin"),
   validateId,
   deleteQuestion
 );

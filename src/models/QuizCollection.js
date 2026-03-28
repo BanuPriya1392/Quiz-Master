@@ -15,6 +15,17 @@ const quizCollectionSchema = new mongoose.Schema(
       trim: true,
       maxlength: 300,
     },
+     category: {
+    type: String,
+    default: "General", // optional now
+  },
+
+  difficulty: {
+    type: String,
+    enum: ["easy", "medium", "hard"],
+    default: "easy",
+  },
+
 
     totalQues: {
       type: Number,

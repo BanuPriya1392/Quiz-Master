@@ -1,16 +1,11 @@
 import Question from "../models/QuizQuestions.js";
 import QuizAttempt from "../models/QuizAttempt.js";
 
-/* ─────────────────────────────────────────────────────────────
-   GET /api/user/quiz
-   - Fetch quiz questions
-   - Hide correct answers from user
-   - Ensure at least 10 questions exist
-───────────────────────────────────────────────────────────── */
+// get quiz questions for user (without correct answers)
 export const getQuizQuestions = async (req, res, next) => {
   try {
     const questions = await Question.find()
-      .select("-correct -tip -createdAt -updatedAt") // hide sensitive fields
+      .select("-correct -tip -createdAt -updatedAt")
       .sort({ createdAt: 1 });
 
     //  No questions available
@@ -39,12 +34,7 @@ export const getQuizQuestions = async (req, res, next) => {
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   POST /api/user/quiz/submit
-   - Accepts answers + timeTaken (seconds)
-   - Calculates score, percentage, status
-   - Returns timeTaken in MM:SS format
-───────────────────────────────────────────────────────────── */
+// submit quiz attempt
 export const submitQuiz = async (req, res, next) => {
   try {
     const { answers, timeTaken } = req.body;
@@ -118,7 +108,7 @@ export const submitQuiz = async (req, res, next) => {
       status: serverScore >= 7 ? "Passed" : "Failed",
     });
 
-    //  Convert timeTaken → MM:SS using schema method
+   //  Format time as MM:SS for response
     const formattedTime = attempt.getFormattedTimeTaken();
 
     res.status(201).json({
@@ -127,7 +117,7 @@ export const submitQuiz = async (req, res, next) => {
       data: {
         score: attempt.score,
         percentage: attempt.percentage,
-        timeTaken: formattedTime, //  written as MM:SS
+        timeTaken: formattedTime, 
         status: attempt.status,
         attemptId: attempt._id,
       },
@@ -137,11 +127,7 @@ export const submitQuiz = async (req, res, next) => {
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   GET /api/user/quiz/my-attempts
-   - Returns all attempts (summary)
-   - Replaces timeTaken with MM:SS
-───────────────────────────────────────────────────────────── */
+// get user's quiz attempts
 export const getMyAttempts = async (req, res, next) => {
   try {
     const attempts = await QuizAttempt.find({ userId: req.user.id })
@@ -164,12 +150,7 @@ export const getMyAttempts = async (req, res, next) => {
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   GET /api/user/quiz/my-attempts/:attemptId
-   - Returns detailed attempt
-   - Includes correct answers + tips
-   - Formats timeTaken
-───────────────────────────────────────────────────────────── */
+// get specific attempt by ID (with answers)
 export const getAttemptById = async (req, res, next) => {
   try {
     const attempt = await QuizAttempt.findOne({

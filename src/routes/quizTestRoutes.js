@@ -1,25 +1,20 @@
 import express from "express";
 import {
   startQuiz,
-  submitQuiz,
-} from "../controllers/quizTestController.js";
+  endQuiz,
+  getQuizResult,
+  getQuizReview,
+   getMyAttempts 
+} from "../controllers/quizController.js";
 
-import { verifyToken } from "../middlewares/authMiddleware.js";
+import { verifyToken, isStudent } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-/**
- *  START QUIZ
- * GET /api/quiz/start/:collectionId
- * - Fetch quiz + questions (without correct answer)
- */
-router.get("/start/:collectionId", verifyToken, startQuiz);
-
-/**
- *  SUBMIT QUIZ
- * POST /api/quiz/submit
- * - Evaluate answers and return score
- */
-router.post("/submit", verifyToken, submitQuiz);
+router.post("/start", verifyToken, isStudent, startQuiz);
+router.post("/end/:sessionId", verifyToken, isStudent, endQuiz);
+router.get("/result/:sessionId", verifyToken, isStudent, getQuizResult);
+router.get("/review/:sessionId", verifyToken, isStudent, getQuizReview);
+router.get("/attempts", verifyToken, isStudent, getMyAttempts);
 
 export default router;

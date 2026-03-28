@@ -1,64 +1,38 @@
-
-
+// src/routes/questionRoutes.js
 import express from "express";
 import {
   getAllQuestions,
   getQuestionById,
   createQuestion,
+  createBulkQuestions,
   updateQuestion,
   deleteQuestion,
-  createBulkQuestions,
   getQuestionsByCollection
+} from "../controllers/questionController.js";
 
-} from "../controllers/question.js";
-
-import {
-  validateCreate,
-  validateId,
-  validateUpdate,
-  validateBulkCreate,
-  maxTenQuestionsPerTitle
-} from "../validators/quizValidator.js";
-
-import { verifyToken, isMentor } from "../middlewares/authMiddleware.js";
+// Use your existing middleware (verifyToken style)
+import { verifyToken, isMentor, isAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-/* PUBLIC (or restrict as needed) */
-router.get("/", verifyToken, getAllQuestions);
-router.get("/:id", validateId, getQuestionById);
+//PUBLIC ROUTES
+router.get("/", getAllQuestions);
+router.get("/collection/:collectionId", getQuestionsByCollection);
+router.get("/:id", getQuestionById);
 
-/* PROTECTED — Mentor */
-router.post("/", verifyToken, isMentor, validateCreate, maxTenQuestionsPerTitle, createQuestion);
+//protected routes
+// Only mentor or admin can manage questions
 
-router.put(
-  "/:id",
-  verifyToken,
-  isMentor,
-  validateUpdate,
-  updateQuestion
-);
+// CREATE QUESTION
+router.post("/", verifyToken, isMentor, createQuestion);
 
-router.delete(
-  "/:id",
-  verifyToken,
-  isMentor,
-  validateId,
-  deleteQuestion
-);
+// BULK CREATE
+router.post("/bulk", verifyToken, isMentor, createBulkQuestions);
 
-//  IMPORTANT: keep /bulk BEFORE /:id
-router.post(
-  "/bulk",
-  verifyToken,
-  isMentor,
-  validateBulkCreate,
-  createBulkQuestions,maxTenQuestionsPerTitle
-);
+// UPDATE QUESTION
+router.put("/:id", verifyToken, isMentor, updateQuestion);
 
-router.get("/collection/:collectionId", verifyToken
-  ,getQuestionsByCollection
-  
-);
+// DELETE QUESTION
+router.delete("/:id", verifyToken, isMentor, deleteQuestion);
 
 export default router;

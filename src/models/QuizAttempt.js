@@ -99,10 +99,7 @@ const quizAttemptSchema = new mongoose.Schema(
   },
 );
 
-// ─── Helper: Format seconds into MM:SS string ──────────────────────────────
-// Use this on the frontend or in API responses to display timeTaken nicely
-// Example: formatTimeTaken(525) → "08:45"
-// Example: formatTimeTaken(600) → "10:00"
+// Instance Method: Format timeTaken (in seconds) to MM:SS string
 quizAttemptSchema.methods.getFormattedTimeTaken = function () {
   const totalSeconds = this.timeTaken;
 
@@ -121,9 +118,8 @@ quizAttemptSchema.methods.getFormattedTimeTaken = function () {
   return `${mm}:${ss}`;
 };
 
-// ─── Helper: Static validator for timeTaken before saving ──────────────────
-// Call this on the frontend before submitting to catch any edge cases
-// Example: QuizAttempt.isValidTimeTaken(601) → false
+//Static Method: Validate timeTaken value 
+
 quizAttemptSchema.statics.isValidTimeTaken = function (timeTaken) {
   return timeTaken >= 0 && timeTaken <= 600;
 };
