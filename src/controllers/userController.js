@@ -1,6 +1,7 @@
 import User from "../models/User.js";
+import QuizSession from "../models/quizSession.model.js";
 import sendResponse from "../utils/sendResponse.js";
-
+import mongoose from "mongoose";
 
 //  CREATE USER
 export const createUser = async (req, res) => {
@@ -51,15 +52,9 @@ export const createUser = async (req, res) => {
 // GET PROFILE
 export const getUserProfile = async (req, res) => {
   try {
-
     const user = await User.findById(req.user.id).select("-password");
 
-    if (!user) {
-      return sendResponse(res, 404, false, "User not found");
-    }
-
-    return sendResponse(res, 200, true, "Profile fetched successfully", user);
-
+    return sendResponse(res, 200, true, "Profile fetched", user);
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }
@@ -109,15 +104,42 @@ export const updateUserProfile = async (req, res) => {
 // DELETE USER
 export const deleteUser = async (req, res) => {
   try {
+    const userId = req.user.id;
 
-    const user = await User.findByIdAndDelete(req.user.id);
+    // CHANGE: userId → user
+    const totalAttempts = await QuizSession.countDocuments({
+      user: userId
+    });
 
-    if (!user) {
-      return sendResponse(res, 404, false, "User not found");
-    }
+    const avgScore = await QuizSession.aggregate([
+      {
+        // CHANGE: userId → user + ObjectId
+        $match: { user: new mongoose.Types.ObjectId(userId) }
+      },
+      {
+        $group: {
+          _id: null,
+          avg: { $avg: "$score" }
+        }
+      }
+    ]);
 
-    return sendResponse(res, 200, true, "User deleted successfully");
+    return sendResponse(res, 200, true, "Stats fetched", {
+      totalAttempts,
+      averageScore: avgScore[0]?.avg || 0
+    });
 
+  } catch (error) {
+    return sendResponse(res, 500, false, error.message);
+  }
+};
+
+// DELETE PROFILE
+export const deleteProfile = async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.user.id);
+
+    return sendResponse(res, 200, true, "Account deleted successfully");
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }

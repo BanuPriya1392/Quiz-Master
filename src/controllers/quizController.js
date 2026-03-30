@@ -1,190 +1,250 @@
-import Question from "../models/Quiz.js";
+// src/controllers/quizController.js
 
-/* ─────────────────────────────────────────────────────────────
-   GET /api/mentor/quiz
-───────────────────────────────────────────────────────────── */
-export const getAllQuestions = async (req, res, next) => {
+import Quiz from "../models/Quiz.js";
+import Question from "../models/Questions.js";
+
+
+//  GET /api/quizzes (only published)
+export const getAllQuizzes = async (req, res, next) => {
   try {
-    const { title } = req.query;
-    const filter = { createdBy: req.user.id };  
+    const { category } = req.query;
 
-    if (title) {
-      filter.title = { $regex: new RegExp(`^${title.trim()}$`, "i") };
+    const query = { status: "published" };
+
+    if (category) {
+      query.category = category;
     }
 
-    const questions = await Question.find(filter).sort({ createdAt: 1 });
-
-    const availableTitles = await Question.distinct("title", { createdBy: req.user.id }); 
+    const quizzes = await Quiz.find(query)
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      total: questions.length,
-      availableTitles,
-      data: questions,
+      count: quizzes.length,
+      data: quizzes,
     });
+
   } catch (err) {
     next(err);
   }
 };
-/* ─────────────────────────────────────────────────────────────
-   GET /api/mentor/quiz/:id
-───────────────────────────────────────────────────────────── */
-export const getQuestionById = async (req, res, next) => {
+
+
+
+//  GET /api/quizzes/:quizId (with questions)
+export const getQuizById = async (req, res, next) => {
   try {
-    const question = await Question.findOne({ 
-  _id: req.params.id, 
-  createdBy: req.user.id 
-});
-    if (!question) {
+    const quiz = await Quiz.findById(req.params.quizId)
+      .populate("createdBy", "name email");
+
+    if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: `Question "${req.params.id}" not found.`,
+        message: "Quiz not found"
       });
     }
-    res.status(200).json({ success: true, data: question });
+
+    //  Fetch questions using moduleIds
+    const questions = await Question.find({
+      moduleId: { $in: quiz.modules }
+    }).select("-correct -tip");
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...quiz.toObject(),
+        questions
+      }
+    });
+
   } catch (err) {
     next(err);
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   POST /api/mentor/quiz
-   Body: { title, question, options, correct, tip }
-───────────────────────────────────────────────────────────── */
-export const createQuestion = async (req, res, next) => {
+
+
+//  POST /api/admin/quizzes
+export const createQuiz = async (req, res, next) => {
   try {
-     
-    const { title, question, options, correct, tip } = req.body;
+    const { title, description, categoryId, difficulty, moduleIds } = req.body;
 
-    const created = await Question.create({
-      title:     title.trim(),
-      question:  question.trim(),
+    if (!title || !categoryId || !moduleIds || moduleIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "title, categoryId, moduleIds are required"
+      });
+    }
 
-      options:   options.map((o) => ({ id: o.id, text: o.text.trim() })),
-      correct,
-      tip:       tip.trim(),
-      createdBy: req.user.id,  
+    //  prevent duplicate title
+    const existing = await Quiz.findOne({ title: title.trim() });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "Quiz title already exists"
+      });
+    }
+
+    const quiz = await Quiz.create({
+      title: title.trim(),
+      description,
+      category: categoryId,
+      modules: moduleIds, // 🔥 important
+      difficulty: difficulty || "easy",
+      totalQues: 0,
+      status: "unpublished",
+      createdBy: req.user?.id,
     });
 
     res.status(201).json({
       success: true,
-      message: `Question added to "${title}" quiz successfully.`,
-      data: created,
+      message: "Quiz created",
+      data: quiz
     });
+
   } catch (err) {
     next(err);
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   PUT /api/mentor/quiz/:id
-───────────────────────────────────────────────────────────── */
-export const updateQuestion = async (req, res, next) => {
-  try {
-    const { title, question, options, correct, tip } = req.body;
 
-    const updated = await Question.findByIdAndUpdate(
-       { _id: req.params.id, createdBy: req.user.id },
-      {
-        title:    title.trim(),
-        question: question.trim(),
-        options:  options.map((o) => ({ id: o.id, text: o.text.trim() })),
-        correct,
-        tip:      tip.trim(),
-      },
-      {  returnDocument: "after", runValidators: true }
+
+//  PUT /api/admin/quizzes/:quizId
+export const updateQuiz = async (req, res, next) => {
+  try {
+    const { title, description, categoryId, difficulty, moduleIds } = req.body;
+
+    const updateData = {};
+
+    if (title) updateData.title = title.trim();
+    if (description) updateData.description = description;
+    if (categoryId) updateData.category = categoryId;
+    if (difficulty) updateData.difficulty = difficulty;
+    if (moduleIds) updateData.modules = moduleIds; // 🔥 allow update modules
+
+    const quiz = await Quiz.findByIdAndUpdate(
+      req.params.quizId,
+      updateData,
+      { new: true, runValidators: true }
     );
 
-    if (!updated) {
+    if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: `Question "${req.params.id}" not found.`,
+        message: "Quiz not found"
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Question updated successfully.",
-      data:    updated,
+      message: "Quiz updated",
+      data: quiz
     });
+
   } catch (err) {
     next(err);
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   DELETE /api/mentor/quiz/:id
-───────────────────────────────────────────────────────────── */
-export const deleteQuestion = async (req, res, next) => {
+
+
+// DELETE /api/admin/quizzes/:quizId
+export const deleteQuiz = async (req, res, next) => {
   try {
-    const deleted = await Question.findByIdAndDelete( {_id: req.params.id,
-      createdBy: req.user.id, 
-    });
-    if (!deleted) {
+    const quiz = await Quiz.findByIdAndDelete(req.params.quizId);
+
+    if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: `Question "${req.params.id}" not found.`,
+        message: "Quiz not found"
       });
     }
+
+    // ❗ OPTIONAL: only if you want to delete questions (not recommended now)
+    // await Question.deleteMany({ moduleId: { $in: quiz.modules } });
+
     res.status(200).json({
       success: true,
-      message: `Question deleted from "${deleted.title}" quiz successfully.`,
+      message: "Quiz deleted"
     });
+
   } catch (err) {
     next(err);
   }
 };
 
-/* POST /api/mentor/quiz/bulk */
-export const createBulkQuestions = async (req, res, next) => {
+
+
+// PATCH /api/admin/quizzes/:quizId/publish
+export const publishQuiz = async (req, res, next) => {
   try {
-    const { title, questions } = req.body;
-    // questions = array of { question, options, correct, tip }
+    const quiz = await Quiz.findById(req.params.quizId);
 
-    if (!Array.isArray(questions) || questions.length === 0) {
-      return res.status(400).json({
+    if (!quiz) {
+      return res.status(404).json({
         success: false,
-        message: "Questions array is required.",
+        message: "Quiz not found"
       });
     }
 
-    if (questions.length > 10) {
-      return res.status(400).json({
-        success: false,
-        message: "Maximum 10 questions allowed per bulk insert.",
-      });
-    }
-
-    // Existing count check
-    const existingCount = await Question.countDocuments({
-      title: { $regex: new RegExp(`^${title.trim()}$`, "i") },
-      createdBy: req.user.id,
+    // count questions from modules
+    const questionCount = await Question.countDocuments({
+      moduleId: { $in: quiz.modules }
     });
 
-    if (existingCount + questions.length > 10) {
+    if (questionCount < 3) {
       return res.status(400).json({
         success: false,
-        message: `"${title}" already has ${existingCount} questions. You can add only ${10 - existingCount} more.`,
+        message: `Need at least 3 questions. Now: ${questionCount}`
       });
     }
 
-    // All questions
-    const docs = questions.map((q) => ({
-      title:     title.trim(),
-      question:  q.question.trim(),
-      options:   q.options.map((o) => ({ id: o.id, text: o.text.trim() })),
-      correct:   q.correct,
-      tip:       q.tip.trim(),
-      createdBy: req.user.id,
-    }));
+    // update total questions
+    quiz.totalQues = questionCount;
+    quiz.status = "published";
+    quiz.publishedAt = new Date();
 
-    const created = await Question.insertMany(docs);
+    await quiz.save();
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      message: `${created.length} questions added to "${title}" successfully.`,
-      data: created,
+      message: "Quiz published",
+      data: quiz
     });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+//  PATCH /api/admin/quizzes/:quizId/unpublish
+export const unpublishQuiz = async (req, res, next) => {
+  try {
+    const quiz = await Quiz.findByIdAndUpdate(
+      req.params.quizId,
+      {
+        status: "unpublished",
+        publishedAt: null
+      },
+      { new: true }
+    );
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Quiz unpublished",
+      data: quiz
+    });
+
   } catch (err) {
     next(err);
   }

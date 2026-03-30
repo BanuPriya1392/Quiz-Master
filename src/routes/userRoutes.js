@@ -17,9 +17,12 @@ router.post("/register", createUser);
 router.get("/profile", verifyToken, getUserProfile);
 
 // UPDATE PROFILE
-router.put("/profile", verifyToken, updateUserProfile);
+router.put("/profile", verifyToken, updateProfile);
 
-// DELETE PROFILE
-router.delete("/profile", verifyToken, deleteUser);
+// GET STATS
+router.get("/profile/stats", verifyToken, getProfileStats);
+
+// DELETE ACCOUNT
+router.delete("/profile", verifyToken, deleteProfile);
 
 export default router;

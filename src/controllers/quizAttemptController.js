@@ -1,135 +1,71 @@
-import Question from "../models/Quiz.js";
-import QuizAttempt from "../models/QuizAttempt.js";
+import mongoose from "mongoose";
+import Quiz from "../models/Quiz.js";
+import Question from "../models/Questions.js";
+import QuizSession from "../models/quizSession.model.js";
 
-/* ─────────────────────────────────────────────────────────────
-   GET /api/user/quiz
-   - Fetch quiz questions
-   - Hide correct answers from user
-   - Ensure at least 10 questions exist
-───────────────────────────────────────────────────────────── */
-export const getQuizQuestions = async (req, res, next) => {
+//start quiz attempt
+export const startAttempt = async (req, res, next) => {
   try {
-    const questions = await Question.find()
-      .select("-correct -tip -createdAt -updatedAt") // hide sensitive fields
-      .sort({ createdAt: 1 });
+    const { quizId } = req.params;
 
-    //  No questions available
-    if (questions.length === 0) {
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz || quiz.status !== "published") {
       return res.status(404).json({
         success: false,
-        message: "No questions found. Please contact your mentor.",
+        message: "Quiz not found or not published",
       });
     }
 
-    // Not enough questions
-    if (questions.length < 10) {
+    // Delete unfinished sessions
+    await QuizSession.deleteMany({
+      user: req.user.id,
+      quizId,
+      isCompleted: false,
+    });
+
+    let finalQuestions = [];
+
+    for (let moduleId of quiz.modules) {
+      const questions = await Question.find({ moduleId });
+      finalQuestions = finalQuestions.concat(questions);
+    }
+
+    if (!finalQuestions.length) {
       return res.status(400).json({
         success: false,
-        message: `Quiz is not ready yet. Only ${questions.length}/10 questions available.`,
+        message: "No questions found for this quiz.",
       });
     }
 
-    res.status(200).json({
-      success: true,
-      total: questions.length,
-      data: questions,
+    // Shuffle
+    finalQuestions.sort(() => Math.random() - 0.5);
+
+    const session = await QuizSession.create({
+      user: req.user.id,
+      quizId,
+      questions: finalQuestions.map((q) => q._id),
+      totalQuestions: finalQuestions.length,
+      startedAt: new Date(),
+      isCompleted: false,
     });
-  } catch (err) {
-    next(err);
-  }
-};
-
-/* ─────────────────────────────────────────────────────────────
-   POST /api/user/quiz/submit
-   - Accepts answers + timeTaken (seconds)
-   - Calculates score, percentage, status
-   - Returns timeTaken in MM:SS format
-───────────────────────────────────────────────────────────── */
-export const submitQuiz = async (req, res, next) => {
-  try {
-    const { answers, timeTaken } = req.body;
-    const userId = req.user.id;
-
-    //  Validate time (0–600 seconds)
-    if (!QuizAttempt.isValidTimeTaken(timeTaken)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid time taken. Must be between 0 and 600 seconds.",
-      });
-    }
-
-    //  Restrict one attempt per day
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const alreadyAttempted = await QuizAttempt.findOne({
-      userId,
-      createdAt: { $gte: todayStart },
-    });
-
-    if (alreadyAttempted) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "You have already submitted the quiz today. Try again tomorrow.",
-      });
-    }
-
-    //  Validate question IDs
-    const questionIds = answers.map((a) => a.questionId);
-
-    const dbQuestions = await Question.find({
-      _id: { $in: questionIds },
-    });
-
-    if (dbQuestions.length !== 10) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid question IDs in answers.",
-      });
-    }
-
-    //  Calculate score securely (server-side)
-    let serverScore = 0;
-
-    const verifiedAnswers = answers.map((ans) => {
-      const question = dbQuestions.find(
-        (q) => q._id.toString() === ans.questionId.toString(),
-      );
-
-      const isCorrect = question && ans.selected === question.correct;
-
-      if (isCorrect) serverScore++;
-
-      return {
-        questionId: ans.questionId,
-        selected: ans.selected || null,
-        isCorrect: isCorrect || false,
-      };
-    });
-
-    //  Save attempt in DB (time stored as seconds)
-    const attempt = await QuizAttempt.create({
-      userId,
-      answers: verifiedAnswers,
-      score: serverScore,
-      percentage: Math.round((serverScore / 10) * 100),
-      timeTaken,
-      status: serverScore >= 7 ? "Passed" : "Failed",
-    });
-
-    //  Convert timeTaken → MM:SS using schema method
-    const formattedTime = attempt.getFormattedTimeTaken();
 
     res.status(201).json({
       success: true,
-      message: "Quiz submitted successfully.",
+      message: "Attempt started",
       data: {
-        score: attempt.score,
-        percentage: attempt.percentage,
-        timeTaken: formattedTime, //  written as MM:SS
-        status: attempt.status,
-        attemptId: attempt._id,
+        sessionId: session._id,
+        quizTitle: quiz.title,
+        timeLimit: quiz.timeLimit || "15 minutes",
+        totalQuestions: finalQuestions.length,
+        questions: finalQuestions.map((q) => ({
+          _id: q._id,
+          question: q.question,
+          options: q.options.map((opt) => ({
+            id: opt.id,
+            text: opt.text,
+            _id: opt._id,
+          })),
+        })),
       },
     });
   } catch (err) {
@@ -137,59 +73,242 @@ export const submitQuiz = async (req, res, next) => {
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   GET /api/user/quiz/my-attempts
-   - Returns all attempts (summary)
-   - Replaces timeTaken with MM:SS
-───────────────────────────────────────────────────────────── */
-export const getMyAttempts = async (req, res, next) => {
+//start combined attempt for multiple module quizzes
+export const startCombinedAttempt = async (req, res, next) => {
   try {
-    const attempts = await QuizAttempt.find({ userId: req.user.id })
-      .select("-answers") // exclude detailed answers
-      .sort({ createdAt: -1 });
+    const { moduleQuizIds } = req.body;
 
-    //  Format time for each attempt
-    const formattedAttempts = attempts.map((attempt) => ({
-      ...attempt.toObject(),
-      timeTaken: attempt.getFormattedTimeTaken(), // overwrite
-    }));
+    if (!moduleQuizIds || !moduleQuizIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No module quizzes provided",
+      });
+    }
 
-    res.status(200).json({
+    const quizzes = await Quiz.find({
+      _id: { $in: moduleQuizIds.map(id => new mongoose.Types.ObjectId(id)) },
+      status: "published",
+    });
+
+    if (!quizzes.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No quizzes found",
+      });
+    }
+
+    // Remove unfinished sessions
+    await QuizSession.deleteMany({
+      user: req.user.id,
+      quizId: { $in: moduleQuizIds },
+      isCompleted: false,
+    });
+
+    let finalQuestions = [];
+    const questionIdSet = new Set();
+
+    for (let quiz of quizzes) {
+      for (let moduleId of quiz.modules) {
+        const questions = await Question.aggregate([
+          { $match: { moduleId: new mongoose.Types.ObjectId(moduleId) } },
+          { $sample: { size: 3 } }
+        ]);
+
+        const uniqueQuestions = questions.filter(
+          (q) => !questionIdSet.has(q._id.toString())
+        );
+
+        uniqueQuestions.forEach((q) =>
+          questionIdSet.add(q._id.toString())
+        );
+
+        finalQuestions = finalQuestions.concat(uniqueQuestions);
+      }
+    }
+
+    if (!finalQuestions.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No questions found",
+      });
+    }
+
+    finalQuestions.sort(() => Math.random() - 0.5);
+
+    const session = await QuizSession.create({
+      user: req.user.id,
+      quizId: null,
+      isCombined: true,
+      questions: finalQuestions.map((q) => q._id),
+      totalQuestions: finalQuestions.length,
+      startedAt: new Date(),
+      isCompleted: false,
+    });
+
+    res.status(201).json({
       success: true,
-      total: attempts.length,
-      data: formattedAttempts,
+      message: "Combined attempt started",
+      data: {
+        sessionId: session._id,
+        quizTitle: "Combined Module Quiz",
+        timeLimit: "15 minutes",
+        totalQuestions: finalQuestions.length,
+        questions: finalQuestions.map((q) => ({
+          _id: q._id,
+          question: q.question,
+          options: q.options.map((opt) => ({
+            id: opt.id,
+            text: opt.text,
+            _id: opt._id,
+          })),
+        })),
+      },
     });
   } catch (err) {
     next(err);
   }
 };
 
-/* ─────────────────────────────────────────────────────────────
-   GET /api/user/quiz/my-attempts/:attemptId
-   - Returns detailed attempt
-   - Includes correct answers + tips
-   - Formats timeTaken
-───────────────────────────────────────────────────────────── */
+//submit quiz attempt
+export const submitAttempt = async (req, res, next) => {
+  try {
+    const { sessionId } = req.params;
+    const { answers } = req.body;
+
+    const session = await QuizSession.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
+    }
+
+    if (session.isCompleted) {
+      return res.status(400).json({
+        success: false,
+        message: "Already submitted",
+      });
+    }
+
+    // Expiry check
+    if (session.isExpired()) {
+      return res.status(400).json({
+        success: false,
+        message: "Time expired",
+      });
+    }
+
+    // Fetch questions
+    const questions = await Question.find({
+      _id: { $in: session.questions },
+    });
+
+    let score = 0;
+    let correct = 0;
+    let wrong = 0;
+
+    const evaluatedAnswers = [];
+
+    for (let ans of answers) {
+      const question = questions.find(
+        (q) => q._id.toString() === ans.questionId
+      );
+
+      if (!question) continue;
+
+      const correctAnswer = question.correct; 
+      const isCorrect = ans.selectedOption === correctAnswer;
+
+      if (isCorrect) {
+        score++;
+        correct++;
+      } else {
+        wrong++;
+      }
+
+      evaluatedAnswers.push({
+        questionId: question._id,
+        selectedOption: ans.selectedOption,
+        correctAnswer,
+        isCorrect,
+      });
+    }
+
+    //  Time taken
+    const completedAt = new Date();
+    const timeTaken = Math.floor(
+      (completedAt - new Date(session.startedAt)) / 1000
+    );
+
+    // Save everything
+    session.answers = evaluatedAnswers;
+    session.score = score;
+    session.correctAnswers = correct;
+    session.wrongAnswers = wrong;
+    session.timeTaken = timeTaken;
+    session.isCompleted = true;
+    session.completedAt = completedAt;
+
+    await session.save();
+
+    // RESPONSE WITH RESULT
+    res.status(200).json({
+      success: true,
+      message: "Quiz submitted successfully",
+      data: {
+        score,
+        totalQuestions: session.totalQuestions,
+        correctAnswers: correct,
+        wrongAnswers: wrong,
+        timeTaken: `${timeTaken} seconds`,
+        result: evaluatedAnswers,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * ── GET ATTEMPT HISTORY ──
+ */
+export const getAttemptHistory = async (req, res, next) => {
+  try {
+    const attempts = await QuizSession.find({
+      user: req.user.id,
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: attempts.length,
+      data: attempts,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * ── GET ATTEMPT BY ID ──
+ */
 export const getAttemptById = async (req, res, next) => {
   try {
-    const attempt = await QuizAttempt.findOne({
-      _id: req.params.attemptId,
-      userId: req.user.id,
-    }).populate("answers.questionId", "question options tip correct");
+    const { attemptId } = req.params;
+
+    const attempt = await QuizSession.findById(attemptId);
 
     if (!attempt) {
       return res.status(404).json({
         success: false,
-        message: "Attempt not found.",
+        message: "Attempt not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: {
-        ...attempt.toObject(),
-        timeTaken: attempt.getFormattedTimeTaken(), //  overwrite
-      },
+      data: attempt,
     });
   } catch (err) {
     next(err);

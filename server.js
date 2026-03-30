@@ -1,31 +1,29 @@
-// import required packages
+// server.js
+
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 
-// import database connection
+// DB
 import connectDB from "./src/config/database.js";
 
-// import routes
+// Routes
 import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import quizRoutes from "./src/routes/quizRoutes.js";
 import userQuizRoutes from "./src/routes/userQuizRoutes.js";
 import quizSessionRoutes from "./src/routes/quizSession.Routes.js";
-import adminRoutes from "./src/routes/adminRoutes.js";
 
-// Load environment variables
+// ENV
 dotenv.config();
 
-// Initialize express app
 const app = express();
 
-// Connect MongoDB
+// DB connect
 connectDB();
 
 // Middleware
 app.use(express.json());
-
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -33,26 +31,48 @@ app.use(
   })
 );
 
-// Routes
+//auth routes
 app.use("/api/auth", authRoutes);
 
-// FIXED HERE
+//user routes
 app.use("/api/users", userRoutes);
 
-app.use("/api/mentor/quiz", quizRoutes);
-app.use("/api/users/quiz", userQuizRoutes);
-app.use("/api/quiz/session", quizSessionRoutes);
-app.use("/api/admin/users", adminRoutes);
+app.use("/api/admin/users", adminUserRoutes);
 
-// Test route
+//admin routes
+app.use("/api/admin", adminRoutes);
+
+//admin analytics routes
+app.use("/api/admin/analytics", adminAnalyticsRoutes);
+
+//categories routes
+app.use("/api/categories", categoryRoutes);
+
+//questions routes
+app.use("/api/questions", questionRoutes);
+
+//quizzes routes
+app.use("/api/quizzes", quizRoutes);
+
+//attempts routes
+app.use("/api/attempts", attemptRoutes);
+
+
 app.get("/", (req, res) => {
   res.send("Server Running Successfully");
 });
 
-// Port
-const PORT = process.env.PORT || 5000;
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Server Error",
+  });
+});
 
 // Start server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(` Server running on port ${PORT}`)
 });

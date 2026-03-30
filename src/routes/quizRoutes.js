@@ -1,32 +1,29 @@
+// src/routes/quizRoutes.js
 import express from "express";
 import {
-  getAllQuestions,
-  getQuestionById,
-  createQuestion,
-  updateQuestion,
-  deleteQuestion,
+  getAllQuizzes,
+  getQuizById,
+  createQuiz,
+  updateQuiz,
+  deleteQuiz,
+  publishQuiz,
+  unpublishQuiz,
 } from "../controllers/quizController.js";
-import {
-  validateCreate,
-  validateId,
-  validateUpdate,
-} from "../validators/quizValidator.js";
-import { verifyToken, isMentor } from "../middlewares/authMiddleware.js";
-import { createBulkQuestions } from "../controllers/quizController.js";
+import { verifyToken, isMentor, isAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-/* PUBLIC —(students + mentors) */
-router.get("/", verifyToken,isMentor, getAllQuestions);
-router.get("/:id", validateId, getQuestionById);
+// Public — list all published quizzes, optionally filtered by ?category=
+router.get("/", getAllQuizzes);
 
-/*  PROTECTED — Mentor login token 
-   Order: verifyToken → isMentor → validate → controller */
-router.post(  "/",    verifyToken, isMentor, validateCreate, createQuestion);
-router.put(   "/:id", verifyToken, isMentor, validateUpdate, updateQuestion);
-router.delete("/:id", verifyToken, isMentor, validateId,     deleteQuestion);
+// Public — get a single quiz with questions
+router.get("/:quizId", getQuizById);
 
-// /bulk route — /:id
-router.post("/bulk", verifyToken, isMentor, createBulkQuestions);
+// Admin/Mentor only — create, update, delete, publish
+router.post("/", verifyToken, isMentor, createQuiz);
+router.put("/:quizId", verifyToken, isMentor, updateQuiz);
+router.delete("/:quizId", verifyToken, isMentor, deleteQuiz);
+router.patch("/:quizId/publish", verifyToken, isMentor, publishQuiz);
+router.patch("/:quizId/unpublish", verifyToken, isMentor, unpublishQuiz);
 
 export default router;

@@ -47,8 +47,6 @@ export const createUser = async (req, res) => {
   }
 };
 
-
-
 //  2. Get All Users
 export const getUsers = async (req, res) => {
   try {
@@ -88,9 +86,7 @@ export const getUsers = async (req, res) => {
   }
 };
 
-
-
-// ✅ 3. Get Single User
+// 3. Get Single User
 export const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -107,9 +103,7 @@ export const getUserById = async (req, res) => {
   }
 };
 
-
-
-// ✅ 4. Update Status
+// 4. Update Status
 export const updateUserStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -142,7 +136,7 @@ export const updateUserStatus = async (req, res) => {
 
 
 
-// ✅ 5. Update Role
+// 5. Update Role
 export const updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
@@ -171,7 +165,7 @@ export const updateUserRole = async (req, res) => {
 
 
 
-// ✅ 6. Delete User (FIXED ERROR)
+// 6. Delete User
 export const deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);

@@ -25,47 +25,27 @@ const userSchema = new mongoose.Schema(
     minlength:[10,"Password must be at least 10 characters"]
   },
 
-  // // Not stored in DB (only validation)
-  // confirmPassword:{
-  //   type:String,
-  //   required:[true,"Confirm Password is required"],
-  //   validate:{
-  //     validator:function(value){
-  //       return value === this.password;
-  //     },
-  //     message:"Passwords do not match"
-  //   }
-  // },
+  confirmPassword:{
+   type:String,
+  required:[true,"Confirm Password is required"],
+   validate:{
+  validator:function(value){
+   return value === this.password;
+   },
+   message:"Passwords do not match"
+   }
+  },
 
   photo:{
     type:String,
     default:"https://i.pravatar.cc/100"
   },
 
-  rank:{
-    type:String,
-    default:"Beginner"
-  },
-
-  xp:{
-    type:Number,
-    default:0
-  },
-
-  quizzes:{
-    type:Number,
-    default:0
-  },
-
-  score:{
-    type:Number,
-    default:0
-  },
-
-  streak:{
-    type:Number,
-    default:0
-  },
+  rank:{ type:String, default:"Beginner" },
+  xp:{ type:Number, default:0 },
+  quizzes:{ type:Number, default:0 },
+  score:{ type:Number, default:0 },
+  streak:{ type:Number, default:0 },
 
   joined:{
     type:String,
@@ -90,13 +70,14 @@ const userSchema = new mongoose.Schema(
   agreeToTerms:{
     type:Boolean,
     required:true
-  }
+  },
 
+  // ADD THESE (IMPORTANT)
+  resetPasswordToken: String,
+  resetPasswordExpire: Date
 },
 { timestamps:true }
 );
-
-
 
 // Hash password
 userSchema.pre("save", async function(){
@@ -104,20 +85,15 @@ userSchema.pre("save", async function(){
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-
+  
   // Remove confirmPassword before saving
   this.confirmPassword = undefined;
-
-
 });
-
-
 
 // Compare password
 userSchema.methods.comparePassword = async function(password){
   return bcrypt.compare(password,this.password);
 };
-
 
 const User = mongoose.model("User", userSchema);
 export default User;

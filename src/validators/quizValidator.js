@@ -1,8 +1,8 @@
-import { body, param, query, validationResult } from "express-validator";
+import { body, param, validationResult } from "express-validator";
 import mongoose from "mongoose";
-import Question from "../models/Quiz.js";
+import Question from "../models/QuizQuestions.js";
 
-/* ── collect errors → 422 */
+//common validation result handler
 export const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -10,166 +10,213 @@ export const validate = (req, res, next) => {
       success: false,
       message: "Validation failed",
       errors: errors.array().map((e) => ({
-        field:   e.path,
+        field: e.path,
         message: e.msg,
       })),
     });
   }
   next();
 };
-
-/* ── MongoDB ObjectId param */
-const idParam = param("id")
-  .custom((val) => mongoose.Types.ObjectId.isValid(val))
-  .withMessage("ID must be a valid MongoDB ObjectId.");
-
-/* ─────────────────────────────────────────────
-   FIELD — title  ← NEW
-   e.g. "JavaScript", "HTML", "CSS", "React"
-───────────────────────────────────────────── */
-const titleField = body("title")
-  .exists({ checkFalsy: true })
-  .withMessage("Quiz title is required.")
-  .trim()
-  .isString()
-  .withMessage("Title must be a string.")
-  .isLength({ min: 2, max: 100 })
-  .withMessage("Title must be between 2 and 100 characters.");
-
-/* ── question field */
-const questionField = body("question")
-  .exists({ checkFalsy: true })
-  .withMessage("Question is required.")
-  .trim()
-  .isString()
-  .withMessage("Question must be a string.")
-  .isLength({ min: 10, max: 500 })
-  .withMessage("Question must be between 10 and 500 characters.");
-
-/* ── options field */
-const optionsField = [
-  body("options")
-    .exists()
-    .withMessage("Options are required.")
-    .isArray({ min: 4, max: 4 })
-    .withMessage("Options must be an array of exactly 4 items.")
-    .custom((opts) => {
-      const VALID_IDS = ["A", "B", "C", "D"];
-      const seen = new Set();
-
-      for (const opt of opts) {
-        if (typeof opt !== "object" || opt === null || Array.isArray(opt))
-          throw new Error("Each option must be a plain object { id, text }.");
-        if (!VALID_IDS.includes(opt.id))
-          throw new Error(`Option id must be one of A, B, C, D. Received: "${opt.id}".`);
-        if (seen.has(opt.id))
-          throw new Error(`Duplicate option id "${opt.id}" found.`);
-        seen.add(opt.id);
-        if (typeof opt.text !== "string" || opt.text.trim().length === 0)
-          throw new Error(`Option "${opt.id}" must have a non-empty text string.`);
-        if (opt.text.trim().length > 200)
-          throw new Error(`Option "${opt.id}" text must not exceed 200 characters.`);
-      }
-
-      const missing = VALID_IDS.filter((id) => !seen.has(id));
-      if (missing.length)
-        throw new Error(`Missing option id(s): ${missing.join(", ")}.`);
-
-      return true;
-    }),
+// ID VALIDATION
+export const validateId = [
+  param("id")
+    .custom((val) => mongoose.Types.ObjectId.isValid(val))
+    .withMessage("Invalid MongoDB ID"),
+  validate,
 ];
 
-/* ── correct field */
-const correctField = body("correct")
-  .exists({ checkFalsy: true })
-  .withMessage("Correct answer is required.")
-  .isIn(["A", "B", "C", "D"])
-  .withMessage("Correct must be one of: A, B, C, D.");
+//quiz collection creation validation
+export const validateCreateCollection = [
+  body("title")
+    .trim()
+    .notEmpty().withMessage("Title is required")
+    .isLength({ min: 2, max: 100 }).withMessage("Title must be 2-100 characters"),
 
-/* ── cross-field: correct must match one of the option ids */
+  body("description")
+    .optional()
+    .trim()
+    .isString().withMessage("Description must be string")
+    .isLength({ max: 300 }).withMessage("Max 300 characters"),
+
+  body("category")
+    .optional()
+    .isString().withMessage("Category must be string"),
+
+  body("difficulty")
+    .optional()
+    .isIn(["easy", "medium", "hard"]).withMessage("Difficulty must be easy | medium | hard"),
+
+  validate,
+];
+
+//quiz collection update validation
+
+// TITLE
+const titleField = body("title")
+  .notEmpty()
+  .withMessage("Title is required")
+  .isLength({ min: 2, max: 100 });
+
+// CATEGORY
+const categoryField = body("category")
+  .notEmpty()
+  .withMessage("Category is required")
+  .isString();
+
+// DIFFICULTY
+const difficultyField = body("difficulty")
+  .optional()
+  .isIn(["easy", "medium", "hard"])
+  .withMessage("Difficulty must be easy | medium | hard");
+
+// QUIZ ID (IMPORTANT )
+const quizIdField = body("quizId")
+  .notEmpty()
+  .withMessage("quizId is required")
+  .custom((val) => mongoose.Types.ObjectId.isValid(val))
+  .withMessage("Invalid quizId");
+
+// QUESTION
+const questionField = body("question")
+  .notEmpty()
+  .withMessage("Question required")
+  .isLength({ min: 15 });
+
+// OPTIONS
+const optionsField = body("options")
+  .isArray({ min: 4, max: 4 })
+  .withMessage("Exactly 4 options required")
+  .custom((opts) => {
+    const valid = ["A", "B", "C", "D"];
+    const ids = opts.map((o) => o.id);
+
+    if (new Set(ids).size !== 4) {
+      throw new Error("Duplicate option IDs");
+    }
+
+    for (let opt of opts) {
+      if (!valid.includes(opt.id)) {
+        throw new Error("Option id must be A/B/C/D");
+      }
+      if (!opt.text) {
+        throw new Error("Option text required");
+      }
+    }
+
+    return true;
+  });
+
+// CORRECT
+const correctField = body("correct")
+  .isIn(["A", "B", "C", "D"])
+  .withMessage("Correct must be A/B/C/D");
+
+// MATCH CORRECT WITH OPTIONS
 const correctMatchesOption = body("correct").custom((correct, { req }) => {
-  const opts = req.body.options;
-  if (!Array.isArray(opts)) return true;
-  const ids = opts.map((o) => o && o.id);
-  if (!ids.includes(correct))
-    throw new Error(
-      `Correct answer "${correct}" must match one of the provided option ids.`
-    );
+  const ids = req.body.options?.map((o) => o.id) || [];
+  if (!ids.includes(correct)) {
+    throw new Error("Correct answer must match options");
+  }
   return true;
 });
 
-/* ── tip field */
+// tip
 const tipField = body("tip")
-  .exists({ checkFalsy: true })
-  .withMessage("Tip is required.")
-  .trim()
-  .isString()
-  .withMessage("Tip must be a string.")
-  .isLength({ min: 10, max: 500 })
-  .withMessage("Tip must be between 10 and 500 characters.");
+  .notEmpty()
+  .withMessage("Tip required");
 
-/* ── business rule: max 10 questions PER TITLE ← UPDATED */
+// limit to 10 questions per quiz
+
 export const maxTenQuestionsPerTitle = async (req, res, next) => {
   try {
-    const { title } = req.body;
-    if (!title) return next(); // title validation catches this
+    const { quizId } = req.body;
 
-    const count = await Question.countDocuments({
-      title: { $regex: new RegExp(`^${title.trim()}$`, "i") }, // case-insensitive
-    });
+    if (!quizId) return next();
+
+    const count = await Question.countDocuments({ quizId });
 
     if (count >= 10) {
       return res.status(400).json({
         success: false,
-        message: `"${title}" quiz already has 10 questions. Delete one before adding a new question.`,
+        message: "This quiz already has 10 questions",
       });
     }
+
     next();
   } catch (err) {
     next(err);
   }
 };
 
-/* ─────────────────────────────────────────────
-   QUERY VALIDATOR — GET /api/mentor/quiz?title=JavaScript
-   title filter 
-───────────────────────────────────────────── */
-export const validateTitleQuery = [
-  query("title")
-    .optional()
-    .trim()
-    .isString()
-    .withMessage("Title query must be a string.")
-    .isLength({ min: 2, max: 100 })
-    .withMessage("Title query must be between 2 and 100 characters."),
+//bulk create questions
+export const validateBulkCreate = [
+  body("quizId")
+    .notEmpty()
+    .withMessage("quizId is required")
+    .isMongoId()
+    .withMessage("Invalid quizId"),
+
+  body("questions")
+    .isArray({ min: 1 })
+    .withMessage("Questions must be an array"),
+
+  body("questions.*.question")
+    .notEmpty()
+    .withMessage("Question required")
+    .isLength({ min: 10 })
+    .withMessage("Minimum 10 characters"),
+
+  body("questions.*.options")
+    .isArray({ min: 4, max: 4 })
+    .withMessage("Exactly 4 options required"),
+
+  body("questions.*.options.*.id")
+    .isIn(["A", "B", "C", "D"])
+    .withMessage("Option id must be A/B/C/D"),
+
+  body("questions.*.options.*.text")
+    .notEmpty()
+    .withMessage("Option text required"),
+
+  body("questions.*.correct")
+    .isIn(["A", "B", "C", "D"])
+    .withMessage("Correct must be A/B/C/D"),
+
+  body("questions.*.tip")
+    .notEmpty()
+    .withMessage("Tip required"),
+
   validate,
 ];
 
-/* ── exported validator sets */
-
-// POST — title field 
+//exports
+// CREATE QUESTION
 export const validateCreate = [
-  titleField,           // ← NEW
-  maxTenQuestionsPerTitle, // ← per title check
+  titleField,
+  quizIdField,      
+  categoryField,
+  difficultyField,
   questionField,
-  ...optionsField,
+  optionsField,
   correctField,
   correctMatchesOption,
   tipField,
   validate,
 ];
 
-// GET /:id | DELETE /:id
-export const validateId = [idParam, validate];
-
-// PUT /:id — title field include
+// UPDATE QUESTION
 export const validateUpdate = [
-  idParam,
-  titleField,        
+  validateId[0],
+  titleField,
+  quizIdField,
+  categoryField,
+  difficultyField,
   questionField,
-  ...optionsField,
+  optionsField,
   correctField,
   correctMatchesOption,
   tipField,
   validate,
+  maxTenQuestionsPerTitle,
+  validateBulkCreate
 ];
