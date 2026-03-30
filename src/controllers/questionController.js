@@ -1,4 +1,4 @@
-import Question from "../models/QuizQuestions.js";
+import Question from "../models/Questions.js";
 import { updateTotalQuestions } from "../utils/updateTotalQuestions.js";
 
 import mongoose from "mongoose";          

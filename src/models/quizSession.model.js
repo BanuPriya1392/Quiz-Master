@@ -1,41 +1,70 @@
 import mongoose from "mongoose";
 
-//  Quiz Session Schema
 const quizSessionSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "User is required."],
+      required: true,
+    },
+
+    //  Required only for single quiz
+    quizId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Quiz",
+      required: function () {
+        return !this.isCombined;
+      },
+      default: null,
+    },
+
+    isCombined: {
+      type: Boolean,
+      default: false,
     },
 
     questions: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "QuizQuestion", // FIX: match your actual model name
+        ref: "Question",
       },
     ],
-answers: [
-  {
-    questionId: String,
-    selectedOption: String,
-    correctAnswer: String,
-    isCorrect: Boolean,
-  },
-],
+
+    answers: [
+      {
+        questionId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Question",
+        },
+        selectedOption: String,
+        correctAnswer: String,
+        isCorrect: Boolean,
+      },
+    ],
+
     totalQuestions: {
       type: Number,
       default: 10,
     },
 
-    timeLimit: {
-      type: String,
-      default: "10 Min:00 Sec",
-    },
-
+    
     score: {
       type: Number,
       default: 0,
+    },
+
+    correctAnswers: {
+      type: Number,
+      default: 0,
+    },
+
+    wrongAnswers: {
+      type: Number,
+      default: 0,
+    },
+
+    timeTaken: {
+      type: Number, // seconds
     },
 
     isCompleted: {
@@ -45,12 +74,10 @@ answers: [
 
     startedAt: {
       type: Date,
-      default: Date.now, // ✅ correct
+      default: Date.now,
     },
 
-    completedAt: {
-      type: Date,
-    },
+    completedAt: Date,
   },
   {
     timestamps: true,
@@ -58,18 +85,14 @@ answers: [
   }
 );
 
-/* ================================
-   ✅ ADD HELPER METHODS (IMPORTANT)
-================================ */
-
-// Check if session expired (10 minutes)
+//  Check expiry (10 min)
 quizSessionSchema.methods.isExpired = function () {
   const now = new Date();
-  const diff = (now - this.startedAt) / 1000; // seconds
-  return diff > 600; // 10 min
+  const diff = (now - this.startedAt) / 1000;
+  return diff > 600;
 };
 
-// Get formatted time
+//  Format time
 quizSessionSchema.methods.getFormattedTime = function () {
   const now = this.completedAt || new Date();
   const diff = Math.floor((now - this.startedAt) / 1000);
@@ -80,6 +103,4 @@ quizSessionSchema.methods.getFormattedTime = function () {
   return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 };
 
-const QuizSession = mongoose.model("QuizSession", quizSessionSchema);
-
-export default QuizSession;
+export default mongoose.model("QuizSession", quizSessionSchema);

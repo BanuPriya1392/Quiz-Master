@@ -1,7 +1,6 @@
-// src/models/QuizCollection.js
 import mongoose from "mongoose";
 
-const quizCollectionSchema = new mongoose.Schema(
+const quizSchema = new mongoose.Schema(
   {
     title: {
       type: String,
@@ -9,7 +8,6 @@ const quizCollectionSchema = new mongoose.Schema(
       trim: true,
       minlength: 2,
       maxlength: 100,
-      unique: true,
     },
     description: {
       type: String,
@@ -22,6 +20,16 @@ const quizCollectionSchema = new mongoose.Schema(
       required: [true, "Category is required"],
       trim: true,
     },
+
+    // ✅ ADD THIS FIELD 🔥
+    modules: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Module",
+        required: true,
+      }
+    ],
+
     difficulty: {
       type: String,
       enum: ["easy", "medium", "hard"],
@@ -34,8 +42,12 @@ const quizCollectionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Active", "Inactive"],
-      default: "Active",
+      enum: ["draft", "published", "unpublished"],
+      default: "draft",
+    },
+    publishedAt: {
+      type: Date,
+      default: null,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -46,7 +58,6 @@ const quizCollectionSchema = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
-quizCollectionSchema.index({ category: 1 });
+quizSchema.index({ category: 1, status: 1 });
 
-const QuizCollection = mongoose.model("QuizCollection", quizCollectionSchema);
-export default QuizCollection;
+export default mongoose.model("Quiz", quizSchema);

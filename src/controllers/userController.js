@@ -1,60 +1,75 @@
 import User from "../models/User.js";
+import QuizSession from "../models/quizSession.model.js";
 import sendResponse from "../utils/sendResponse.js";
+import mongoose from "mongoose"; // IMPORTANT
 
-// read user profile
-export const getUserProfile = async (req, res) => {
+// ✅ GET PROFILE
+export const getProfile = async (req, res) => {
   try {
-
     const user = await User.findById(req.user.id).select("-password");
 
-    if (!user) {
-      return sendResponse(res, 404, false, "User not found");
-    }
-
-    return sendResponse(res, 200, true, "Profile fetched successfully", user);
-
+    return sendResponse(res, 200, true, "Profile fetched", user);
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }
 };
 
-// update user profile
-
-export const updateUserProfile = async (req, res) => {
+// ✅ UPDATE PROFILE
+export const updateProfile = async (req, res) => {
   try {
-
-    const { name, photo } = req.body;
+    const { name, email } = req.body;
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { name, photo },
+      { name, email },
       { new: true }
     ).select("-password");
 
-    if (!user) {
-      return sendResponse(res, 404, false, "User not found");
-    }
+    return sendResponse(res, 200, true, "Profile updated", user);
+  } catch (error) {
+    return sendResponse(res, 500, false, error.message);
+  }
+};
 
-    return sendResponse(res, 200, true, "Profile updated successfully", user);
+// ✅ PROFILE STATS (FIXED HERE 🔥)
+export const getProfileStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // ✅ CHANGE: userId → user
+    const totalAttempts = await QuizSession.countDocuments({
+      user: userId
+    });
+
+    const avgScore = await QuizSession.aggregate([
+      {
+        // ✅ CHANGE: userId → user + ObjectId
+        $match: { user: new mongoose.Types.ObjectId(userId) }
+      },
+      {
+        $group: {
+          _id: null,
+          avg: { $avg: "$score" }
+        }
+      }
+    ]);
+
+    return sendResponse(res, 200, true, "Stats fetched", {
+      totalAttempts,
+      averageScore: avgScore[0]?.avg || 0
+    });
 
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }
 };
 
-
-// delete user profile
-export const deleteUser = async (req, res) => {
+// ✅ DELETE PROFILE
+export const deleteProfile = async (req, res) => {
   try {
+    await User.findByIdAndDelete(req.user.id);
 
-    const user = await User.findByIdAndDelete(req.user.id);
-
-    if (!user) {
-      return sendResponse(res, 404, false, "User not found");
-    }
-
-    return sendResponse(res, 200, true, "User deleted successfully");
-
+    return sendResponse(res, 200, true, "Account deleted successfully");
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }

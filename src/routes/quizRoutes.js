@@ -1,77 +1,29 @@
+// src/routes/quizRoutes.js
 import express from "express";
 import {
-  getAllQuestions,
-  getQuestionById,
-  createQuestion,
-  updateQuestion,
-  deleteQuestion,
-  createBulkQuestions,
-  
+  getAllQuizzes,
+  getQuizById,
+  createQuiz,
+  updateQuiz,
+  deleteQuiz,
+  publishQuiz,
+  unpublishQuiz,
 } from "../controllers/quizController.js";
-
-import {
-  validateCreate,
-  validateId,
-  validateUpdate,
-} from "../validators/quizValidator.js";
-
-//  Use correct exports from authMiddleware
-import { protect, authorizeRoles } from "../middlewares/authMiddleware.js";
+import { verifyToken, isMentor, isAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-//all routes are protected, only mentor or admin can access
+// Public — list all published quizzes, optionally filtered by ?category=
+router.get("/", getAllQuizzes);
 
-// GET ALL QUESTIONS
-router.get(
-  "/",
-  protect,
-  authorizeRoles("mentor", "admin"),
-  getAllQuestions
-);
+// Public — get a single quiz with questions
+router.get("/:quizId", getQuizById);
 
-// GET QUESTION BY ID 
-router.get(
-  "/:id",
-  protect,
-  authorizeRoles("mentor", "admin"),
-  validateId,
-  getQuestionById
-);
-
-// CREATE QUESTION
-router.post(
-  "/",
-  protect,
-  authorizeRoles("mentor", "admin"),
-  validateCreate,
-  createQuestion
-);
-
-// BULK CREATE
-router.post(
-  "/bulk",
-  protect,
-  authorizeRoles("mentor", "admin"),
-  createBulkQuestions
-);
-
-// UPDATE QUESTION
-router.put(
-  "/:id",
-  protect,
-  authorizeRoles("mentor", "admin"),
-  validateUpdate,
-  updateQuestion
-);
-
-// DELETE QUESTION
-router.delete(
-  "/:id",
-  protect,
-  authorizeRoles("mentor", "admin"),
-  validateId,
-  deleteQuestion
-);
+// Admin/Mentor only — create, update, delete, publish
+router.post("/", verifyToken, isMentor, createQuiz);
+router.put("/:quizId", verifyToken, isMentor, updateQuiz);
+router.delete("/:quizId", verifyToken, isMentor, deleteQuiz);
+router.patch("/:quizId/publish", verifyToken, isMentor, publishQuiz);
+router.patch("/:quizId/unpublish", verifyToken, isMentor, unpublishQuiz);
 
 export default router;

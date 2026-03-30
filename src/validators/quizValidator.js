@@ -80,7 +80,7 @@ const quizIdField = body("quizId")
 const questionField = body("question")
   .notEmpty()
   .withMessage("Question required")
-  .isLength({ min: 10 });
+  .isLength({ min: 15 });
 
 // OPTIONS
 const optionsField = body("options")

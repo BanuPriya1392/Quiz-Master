@@ -1,289 +1,250 @@
-import mongoose from "mongoose";
-import QuizSession from "../models/quizSession.model.js";
-import Question from "../models/QuizQuestions.js";
+// src/controllers/quizController.js
 
-//  START QUIZ
-export const startQuiz = async (req, res, next) => {
+import Quiz from "../models/Quiz.js";
+import Question from "../models/Questions.js";
+
+
+//  GET /api/quizzes (only published)
+export const getAllQuizzes = async (req, res, next) => {
   try {
-    const { quizId } = req.body;
+    const { category } = req.query;
 
-    if (!quizId) {
-      return res.status(400).json({
-        success: false,
-        message: "quizId is required",
-      });
+    const query = { status: "published" };
+
+    if (category) {
+      query.category = category;
     }
 
-    //  RETAKE LOGIC 
-    const activeSession = await QuizSession.findOne({
-      user: req.user.id,
-      isCompleted: false,
-    });
-
-    if (activeSession) {
-      await QuizSession.findByIdAndDelete(activeSession._id);
-    }
-
-    //  DAILY ATTEMPT LIMIT
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const attemptsToday = await QuizSession.countDocuments({
-      user: req.user.id,
-      createdAt: { $gte: todayStart },
-    });
-
-    if (attemptsToday >= 10) {
-      return res.status(400).json({
-        success: false,
-        message: "Max 10 attempts per day reached",
-      });
-    }
-
-    const questions = await Question.aggregate([
-      {
-        $match: {
-          collectionId: new mongoose.Types.ObjectId(quizId),
-        },
-      },
-      { $sample: { size: 10 } },
-    ]);
-
-    if (questions.length < 10) {
-      return res.status(400).json({
-        success: false,
-        message: `Not enough questions (${questions.length}/10)`,
-      });
-    }
-
-    const session = await QuizSession.create({
-      user: req.user.id,
-      quizId,
-      questions: questions.map((q) => q._id),
-      totalQuestions: 10,
-      startedAt: new Date(),
-      isCompleted: false,
-    });
+    const quizzes = await Quiz.find(query)
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      message: "Quiz started",
-      data: {
-        sessionId: session._id,
-        timeLimit: "10 Minutes",
-        questions: questions.map((q) => ({
-          _id: q._id,
-          question: q.question,
-          options: q.options,
-        })),
-      },
+      count: quizzes.length,
+      data: quizzes,
     });
+
   } catch (err) {
     next(err);
   }
 };
 
-// get quiz questions (for retake or review)
-export const endQuiz = async (req, res, next) => {
+
+
+//  GET /api/quizzes/:quizId (with questions)
+export const getQuizById = async (req, res, next) => {
   try {
-    const { answers } = req.body;
-    const { sessionId } = req.params;
+    const quiz = await Quiz.findById(req.params.quizId)
+      .populate("createdBy", "name email");
 
-    const session = await QuizSession.findById(sessionId);
-
-    if (!session) {
+    if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Session not found",
+        message: "Quiz not found"
       });
     }
 
-    if (session.isCompleted) {
+    //  Fetch questions using moduleIds
+    const questions = await Question.find({
+      moduleId: { $in: quiz.modules }
+    }).select("-correct -tip");
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...quiz.toObject(),
+        questions
+      }
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+//  POST /api/admin/quizzes
+export const createQuiz = async (req, res, next) => {
+  try {
+    const { title, description, categoryId, difficulty, moduleIds } = req.body;
+
+    if (!title || !categoryId || !moduleIds || moduleIds.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Quiz already completed",
+        message: "title, categoryId, moduleIds are required"
       });
     }
 
-    //  TIMER CHECK
-    if (session.isExpired()) {
+    //  prevent duplicate title
+    const existing = await Quiz.findOne({ title: title.trim() });
+    if (existing) {
       return res.status(400).json({
         success: false,
-        message: "Time expired",
+        message: "Quiz title already exists"
       });
     }
 
-    if (!answers || answers.length !== 10) {
-      return res.status(400).json({
-        success: false,
-        message: "You must answer exactly 10 questions",
-      });
-    }
+    const quiz = await Quiz.create({
+      title: title.trim(),
+      description,
+      category: categoryId,
+      modules: moduleIds, // 🔥 important
+      difficulty: difficulty || "easy",
+      totalQues: 0,
+      status: "unpublished",
+      createdBy: req.user?.id,
+    });
 
-    const questionIds = answers.map(
-      (a) => new mongoose.Types.ObjectId(a.questionId)
+    res.status(201).json({
+      success: true,
+      message: "Quiz created",
+      data: quiz
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+//  PUT /api/admin/quizzes/:quizId
+export const updateQuiz = async (req, res, next) => {
+  try {
+    const { title, description, categoryId, difficulty, moduleIds } = req.body;
+
+    const updateData = {};
+
+    if (title) updateData.title = title.trim();
+    if (description) updateData.description = description;
+    if (categoryId) updateData.category = categoryId;
+    if (difficulty) updateData.difficulty = difficulty;
+    if (moduleIds) updateData.modules = moduleIds; // 🔥 allow update modules
+
+    const quiz = await Quiz.findByIdAndUpdate(
+      req.params.quizId,
+      updateData,
+      { new: true, runValidators: true }
     );
 
-    const questions = await Question.find({
-      _id: { $in: questionIds },
-    });
-
-    let score = 0;
-
-    const detailedAnswers = answers.map((ans) => {
-      const q = questions.find(
-        (q) => q._id.toString() === ans.questionId
-      );
-
-      const isCorrect = q && q.correct === ans.selectedOption;
-
-      if (isCorrect) score++;
-
-      return {
-        questionId: ans.questionId,
-        selectedOption: ans.selectedOption,
-        correctAnswer: q?.correct,
-        isCorrect,
-      };
-    });
-
-    const percentage = Math.round((score / 10) * 100);
-
-    const now = new Date();
-    const totalSeconds = Math.floor((now - session.startedAt) / 1000);
-
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-
-    const formattedTime = `${String(minutes).padStart(2, "0")}:${String(
-      seconds
-    ).padStart(2, "0")}`;
-
-    // SAVE
-    session.score = score;
-    session.answers = detailedAnswers || []; // 🔥 FIX
-    session.isCompleted = true;
-    session.completedAt = now;
-
-    await session.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Quiz completed",
-      data: {
-        score,
-        percentage,
-        timeTaken: formattedTime,
-        status: score >= 7 ? "Passed" : "Failed",
-      },
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// get quiz result (score, percentage, status)
-export const getQuizResult = async (req, res, next) => {
-  try {
-    const session = await QuizSession.findById(req.params.sessionId);
-
-    if (!session) {
+    if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Session not found",
-      });
-    }
-
-    if (!session.isCompleted) {
-      return res.status(400).json({
-        success: false,
-        message: "Quiz not completed yet",
+        message: "Quiz not found"
       });
     }
 
     res.status(200).json({
       success: true,
-      data: {
-        score: session.score,
-        percentage: Math.round((session.score / 10) * 100),
-        status: session.score >= 7 ? "Passed" : "Failed",
-        completedAt: session.completedAt,
-      },
+      message: "Quiz updated",
+      data: quiz
     });
+
   } catch (err) {
     next(err);
   }
 };
 
-// get quiz review (questions, selected options, correct answers)
-export const getQuizReview = async (req, res, next) => {
-  try {
-    const session = await QuizSession.findById(req.params.sessionId);
 
-    if (!session) {
+
+// DELETE /api/admin/quizzes/:quizId
+export const deleteQuiz = async (req, res, next) => {
+  try {
+    const quiz = await Quiz.findByIdAndDelete(req.params.quizId);
+
+    if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Session not found",
+        message: "Quiz not found"
       });
     }
 
-//  FIX: check if answers exist
-    if (!session.answers || session.answers.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No answers found for this session",
-      });
-    }
-
-    const questions = await Question.find({
-      _id: { $in: session.questions },
-    });
-
-    const review = session.answers.map((ans) => {
-      const q = questions.find(
-        (q) => q._id.toString() === ans.questionId
-      );
-
-      return {
-        question: q?.question,
-        options: q?.options,
-        selected: ans.selectedOption,
-        correct: ans.correctAnswer,
-        isCorrect: ans.isCorrect,
-        tip: q?.tip,
-      };
-    });
+    // ❗ OPTIONAL: only if you want to delete questions (not recommended now)
+    // await Question.deleteMany({ moduleId: { $in: quiz.modules } });
 
     res.status(200).json({
       success: true,
-      data: review,
+      message: "Quiz deleted"
     });
+
   } catch (err) {
     next(err);
   }
 };
 
-// get all attempts for a user 
-export const getMyAttempts = async (req, res, next) => {
+
+
+// PATCH /api/admin/quizzes/:quizId/publish
+export const publishQuiz = async (req, res, next) => {
   try {
-    const attempts = await QuizSession.find({
-      user: req.user.id,
-      isCompleted: true,
-    })
-      .sort({ createdAt: -1 })
-      .select("score totalQuestions createdAt");
+    const quiz = await Quiz.findById(req.params.quizId);
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found"
+      });
+    }
+
+    // count questions from modules
+    const questionCount = await Question.countDocuments({
+      moduleId: { $in: quiz.modules }
+    });
+
+    if (questionCount < 3) {
+      return res.status(400).json({
+        success: false,
+        message: `Need at least 3 questions. Now: ${questionCount}`
+      });
+    }
+
+    // update total questions
+    quiz.totalQues = questionCount;
+    quiz.status = "published";
+    quiz.publishedAt = new Date();
+
+    await quiz.save();
 
     res.status(200).json({
       success: true,
-      total: attempts.length,
-      data: attempts.map((a) => ({
-        sessionId: a._id,
-        score: a.score,
-        total: a.totalQuestions,
-        percentage: Math.round((a.score / a.totalQuestions) * 100),
-        date: a.createdAt,
-      })),
+      message: "Quiz published",
+      data: quiz
     });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+//  PATCH /api/admin/quizzes/:quizId/unpublish
+export const unpublishQuiz = async (req, res, next) => {
+  try {
+    const quiz = await Quiz.findByIdAndUpdate(
+      req.params.quizId,
+      {
+        status: "unpublished",
+        publishedAt: null
+      },
+      { new: true }
+    );
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Quiz unpublished",
+      data: quiz
+    });
+
   } catch (err) {
     next(err);
   }

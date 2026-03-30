@@ -1,59 +1,64 @@
+// src/routes/adminRoutes.js
+
 import express from "express";
-
-// USER CONTROLLERS
 import {
-  createUser,
-  getUsers,
-  updateUserStatus,
-  getUserById,
-  deleteUser,
-  updateUserRole,
-} from "../controllers/adminController.js";
+  createQuestion,
+  getAllQuestions,
+  updateQuestion,
+  deleteQuestion,
+} from "../controllers/questionController.js";
 
-// ANALYTICS CONTROLLER
-import {
-  getQuizAnalytics,
-  getCategoryAnalytics,
-  getPerformanceTrends,
-  getTopQuizzes
-} from "../controllers/adminAnalyticsController.js";
-// AUTH MIDDLEWARE
-import { verifyToken, isAdmin } from "../middlewares/authMiddleware.js";
+// For admin/mentor to manage questions within quizzes
+import { verifyToken, isAdminOrMentor } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-/* =========================================
-   USER MANAGEMENT ROUTES
-========================================= */
+//get all questions for a quiz
+router.get(
+  "/quizzes/:quizId/questions",
+  verifyToken,
+  isAdminOrMentor, 
+  (req, res, next) => {
+    req.query.collectionId = req.params.quizId;
+    next();
+  },
+  getAllQuestions
+);
 
-// Create user (Admin only)
-router.post("/users", verifyToken, isAdmin, createUser);
+//create question for a quiz
+router.post(
+  "/quizzes/:quizId/questions",
+  verifyToken,
+  isAdminOrMentor, 
+  (req, res, next) => {
+    req.body.collectionId = req.params.quizId;
+    next();
+  },
+  createQuestion
+);
 
-// Get all users
-router.get("/users", verifyToken, isAdmin, getUsers);
+//update question by id
+router.put(
+  "/quizzes/:quizId/questions/:questionId",
+  verifyToken,
+  isAdminOrMentor,
+  (req, res, next) => {
+    req.params.id = req.params.questionId;
+    next();
+  },
+  updateQuestion
+);
 
-// Get single user
-router.get("/users/:id", verifyToken, isAdmin, getUserById);
-
-// Update user status
-router.patch("/users/:id/status", verifyToken, isAdmin, updateUserStatus);
-
-// Update user role
-router.patch("/users/:id/role", verifyToken, isAdmin, updateUserRole);
-
-// Delete user
-router.delete("/users/:id", verifyToken, isAdmin, deleteUser);
-
-
-/* =========================================
-   QUIZ ANALYTICS ROUTES
-========================================= */
-
-// Main Analytics API
-router.get("/quiz-analytics", verifyToken, isAdmin, getQuizAnalytics);
-router.get("/quiz-analytics/categories", verifyToken, isAdmin, getCategoryAnalytics);
-router.get("/quiz-analytics/trends", verifyToken, isAdmin, getPerformanceTrends);
-router.get("/quiz-analytics/top-quizzes", verifyToken, isAdmin, getTopQuizzes);
-
+//delete question by id
+router.delete(
+  "/quizzes/:quizId/questions/:questionId",
+  verifyToken,
+  isAdminOrMentor, 
+  (req, res, next) => {
+    req.params.id = req.params.questionId;
+    next();
+  },
+  deleteQuestion
+);
 
 export default router;
