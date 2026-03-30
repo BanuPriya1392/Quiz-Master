@@ -10,18 +10,9 @@ import connectDB from "./src/config/database.js";
 // Routes
 import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
-
-import adminRoutes from "./src/routes/adminRoutes.js";
-import questionRoutes from "./src/routes/questionRoutes.js";
-
-import categoryRoutes from "./src/routes/categoryRoutes.js";
 import quizRoutes from "./src/routes/quizRoutes.js";
-import attemptRoutes from "./src/routes/attemptRoutes.js";
-
-//admin analytics routes
-import adminAnalyticsRoutes from "./src/routes/adminAnalyticsRoutes.js";
-import adminUserRoutes from "./src/routes/adminUserRoutes.js";
-
+import userQuizRoutes from "./src/routes/userQuizRoutes.js";
+import quizSessionRoutes from "./src/routes/quizSession.Routes.js";
 
 // ENV
 dotenv.config();
@@ -83,5 +74,5 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(` Server running on port ${PORT}`);
+  console.log(` Server running on port ${PORT}`)
 });

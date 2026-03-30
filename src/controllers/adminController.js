@@ -32,7 +32,6 @@ export const createUser = async (req, res) => {
       email,
       password,
       role: role || "learner",
-      status: "active", 
       agreeToTerms
     });
 
@@ -47,7 +46,6 @@ export const createUser = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
 
 //  2. Get All Users
 export const getUsers = async (req, res) => {
@@ -88,8 +86,7 @@ export const getUsers = async (req, res) => {
   }
 };
 
-
-//  3. Get Single User
+// 3. Get Single User
 export const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -106,8 +103,7 @@ export const getUserById = async (req, res) => {
   }
 };
 
-
-// 4. Update Status (BLOCK / UNBLOCK)
+// 4. Update Status
 export const updateUserStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -128,7 +124,7 @@ export const updateUserStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: `User ${status} successfully`,
+      message: "Status updated",
       user
     });
 
@@ -137,6 +133,7 @@ export const updateUserStatus = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 
 // 5. Update Role
@@ -165,6 +162,7 @@ export const updateUserRole = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 
 // 6. Delete User

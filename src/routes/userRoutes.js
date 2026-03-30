@@ -1,17 +1,20 @@
 import express from "express";
-import {
-  getProfile,
-  updateProfile,
-  getProfileStats,
-  deleteProfile
+import { 
+  createUser,   
+  getUserProfile,
+  updateUserProfile,
+  deleteUser
 } from "../controllers/userController.js";
 
 import { verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// GET PROFILE
-router.get("/profile", verifyToken, getProfile);
+// CREATE USER
+router.post("/register", createUser);
+
+//  GET PROFILE
+router.get("/profile", verifyToken, getUserProfile);
 
 // UPDATE PROFILE
 router.put("/profile", verifyToken, updateProfile);

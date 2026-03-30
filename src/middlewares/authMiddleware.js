@@ -66,10 +66,13 @@ export const allowRoles = (...roles) => {
   };
 };
 
-// Specific role-based middlewares for convenience
-export const isStudent = allowRoles("learner");
-export const isMentor = allowRoles("mentor");
-export const isAdmin = allowRoles("admin");
-
-// For routes that allow both admin and mentor access
-export const isAdminOrMentor = allowRoles("admin", "mentor");
+/* MIDDLEWARE 4 — isAdmin  */
+export const isAdmin = (req, res, next) => {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Only admins can perform this action.",
+    });
+  }
+  next();
+};
