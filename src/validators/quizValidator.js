@@ -69,7 +69,7 @@ const difficultyField = body("difficulty")
   .isIn(["easy", "medium", "hard"])
   .withMessage("Difficulty must be easy | medium | hard");
 
-// QUIZ ID (IMPORTANT 🔥)
+// QUIZ ID (IMPORTANT )
 const quizIdField = body("quizId")
   .notEmpty()
   .withMessage("quizId is required")
