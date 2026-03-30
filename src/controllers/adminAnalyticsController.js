@@ -1,27 +1,35 @@
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import QuizSession from "../models/quizSession.model.js";
 
-// ─── APP OVERVIEW ──────────────────────────────
+//get app overview
 export const getAppOverview = async (req, res, next) => {
   try {
     const totalUsers = await User.countDocuments();
     const totalAttempts = await QuizSession.countDocuments();
-    const completedAttempts = await QuizSession.countDocuments({ isCompleted: true });
+    const completedAttempts = await QuizSession.countDocuments({
+      isCompleted: true,
+    });
 
     const avgScoreData = await QuizSession.aggregate([
       { $match: { isCompleted: true } },
-      { $group: { _id: null, avgScore: { $avg: "$score" } } },
+      {
+        $group: {
+          _id: null,
+          avgScore: { $avg: "$score" },
+        },
+      },
     ]);
 
-    const avgScore = avgScoreData[0]?.avgScore || 0;
+    const averageScore = avgScoreData[0]?.avgScore || 0;
 
     res.status(200).json({
       success: true,
-      overview: {
+      data: {
         totalUsers,
         totalAttempts,
         completedAttempts,
-        avgScore: Math.round(avgScore),
+        averageScore: Number(averageScore.toFixed(1)),
       },
     });
   } catch (err) {
@@ -30,27 +38,46 @@ export const getAppOverview = async (req, res, next) => {
   }
 };
 
-// ─── PER QUIZ PERFORMANCE ─────────────────────
+//get quiz performance
 export const getQuizPerformance = async (req, res, next) => {
   try {
     const { quizId } = req.params;
-    const sessions = await QuizSession.find({ quizId });
 
-    if (!sessions.length)
-      return res.status(404).json({ success: false, message: "No attempts for this quiz" });
+    const stats = await QuizSession.aggregate([
+      {
+        $match: {
+          quizId: new mongoose.Types.ObjectId(quizId),
+          isCompleted: true,
+        },
+      },
+      {
+        $group: {
+          _id: "$quizId",
+          totalAttempts: { $sum: 1 },
+          avgScore: { $avg: "$score" },
+          highestScore: { $max: "$score" },
+          lowestScore: { $min: "$score" },
+        },
+      },
+    ]);
 
-    const totalAttempts = sessions.length;
-    const avgScore = sessions.reduce((acc, s) => acc + (s.score || 0), 0) / totalAttempts;
-    const passCount = sessions.filter((s) => s.score >= 7).length;
-    const passRate = Math.round((passCount / totalAttempts) * 100);
+    if (!stats.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No attempts for this quiz",
+      });
+    }
+
+    const data = stats[0];
 
     res.status(200).json({
       success: true,
-      quizPerformance: {
+      data: {
         quizId,
-        totalAttempts,
-        avgScore: Math.round(avgScore),
-        passRate,
+        totalAttempts: data.totalAttempts,
+        averageScore: Math.round(data.avgScore),
+        highestScore: data.highestScore,
+        lowestScore: data.lowestScore,
       },
     });
   } catch (err) {
@@ -59,31 +86,61 @@ export const getQuizPerformance = async (req, res, next) => {
   }
 };
 
-// ─── PER USER PERFORMANCE ─────────────────────
+//get user performance
 export const getUserPerformance = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const sessions = await QuizSession.find({ user: userId, isCompleted: true });
 
-    if (!sessions.length)
-      return res.status(404).json({ success: false, message: "No attempts found for user" });
+    const stats = await QuizSession.aggregate([
+      {
+        $match: {
+          user: new mongoose.Types.ObjectId(userId),
+          isCompleted: true,
+        },
+      },
+      {
+        $group: {
+          _id: "$user",
+          totalAttempts: { $sum: 1 },
+          avgScore: { $avg: "$score" },
+          bestScore: { $max: "$score" },
+          totalCorrect: { $sum: "$correctAnswers" },
+          totalQuestions: { $sum: "$totalQuestions" },
+        },
+      },
+    ]);
 
-    const totalAttempts = sessions.length;
-    const avgScore = sessions.reduce((acc, s) => acc + (s.score || 0), 0) / totalAttempts;
-    const bestScore = Math.max(...sessions.map((s) => s.score));
+    if (!stats.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No attempts found for user",
+      });
+    }
 
-    const recentAttempts = sessions
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, 5)
-      .map((a) => ({ score: a.score, date: a.createdAt }));
+    const data = stats[0];
+
+    const accuracy =
+      data.totalQuestions > 0
+        ? ((data.totalCorrect / data.totalQuestions) * 100).toFixed(0)
+        : 0;
+
+    // recent attempts
+    const recentAttempts = await QuizSession.find({
+      user: userId,
+      isCompleted: true,
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("score createdAt");
 
     res.status(200).json({
       success: true,
-      userPerformance: {
+      data: {
         userId,
-        totalAttempts,
-        avgScore: Math.round(avgScore),
-        bestScore,
+        totalAttempts: data.totalAttempts,
+        averageScore: Math.round(data.avgScore),
+        bestScore: data.bestScore,
+        accuracy: `${accuracy}%`,
         recentAttempts,
       },
     });

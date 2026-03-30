@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-//  AUTH MIDDLEWARE
+//auth middleware to verify token and extract user info
 export const verifyToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -41,33 +41,35 @@ export const verifyToken = async (req, res, next) => {
   }
 };
 
-// ROLE MIDDLEWARES
-export const isStudent = (req, res, next) => {
-  if (req.user.role !== "learner") {
-    return res.status(403).json({
-      success: false,
-      message: "Only students allowed",
-    });
-  }
-  next();
+
+
+//role-based access control middleware
+
+
+export const allowRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. Allowed roles: ${roles.join(", ")}`,
+      });
+    }
+
+    next();
+  };
 };
 
-export const isMentor = (req, res, next) => {
-  if (req.user.role !== "mentor") {
-    return res.status(403).json({
-      success: false,
-      message: "Only mentors allowed",
-    });
-  }
-  next();
-};
+// Specific role-based middlewares for convenience
+export const isStudent = allowRoles("learner");
+export const isMentor = allowRoles("mentor");
+export const isAdmin = allowRoles("admin");
 
-export const isAdmin = (req, res, next) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({
-      success: false,
-      message: "Only admins allowed",
-    });
-  }
-  next();
-};
+// For routes that allow both admin and mentor access
+export const isAdminOrMentor = allowRoles("admin", "mentor");

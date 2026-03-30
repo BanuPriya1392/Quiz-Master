@@ -1,4 +1,4 @@
-import Question from "../models/QuizQuestions.js";
+import Question from "../models/Questions.js";
 import QuizCollection from "../models/QuizCollection.js";
 
 export const updateTotalQuestions = async (quizId) => {

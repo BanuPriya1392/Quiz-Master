@@ -6,17 +6,24 @@ import {
   addQuestionsToModule,
   updateModule,
   deleteModule,
-  getAllModules
+  getAllModules,
 } from "../controllers/moduleController.js";
 import { verifyToken, isMentor } from "../middlewares/authMiddleware.js";
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true }); // ← critical
 
+// /api/categories/:categoryId/modules
+router.get("/", verifyToken, getModulesByCollection);
 router.post("/", verifyToken, isMentor, createModule);
-router.get("/collection/:collectionId", verifyToken, getModulesByCollection);
-router.post("/:moduleId/questions", verifyToken, isMentor, addQuestionsToModule);
+
+// /api/categories/:categoryId/modules/:moduleId
 router.patch("/:moduleId", verifyToken, isMentor, updateModule);
 router.delete("/:moduleId", verifyToken, isMentor, deleteModule);
-router.get("/", verifyToken, getAllModules);
+
+// /api/categories/:categoryId/modules/:moduleId/questions
+router.post("/:moduleId/questions", verifyToken, isMentor, addQuestionsToModule);
+
+// standalone - get all modules (admin use)
+router.get("/all", verifyToken, getAllModules);
 
 export default router;
