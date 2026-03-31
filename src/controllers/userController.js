@@ -3,7 +3,8 @@ import QuizSession from "../models/quizSession.model.js";
 import sendResponse from "../utils/sendResponse.js";
 import mongoose from "mongoose";
 
-//  CREATE USER
+
+// CREATE USER
 export const createUser = async (req, res) => {
   try {
     const {
@@ -11,14 +12,14 @@ export const createUser = async (req, res) => {
       email,
       password,
       photo,
-      rank,
-      xp,
-      quizzes,
-      score,
-      streak,
       role,
       agreeToTerms
     } = req.body;
+
+    // ✅ Validation
+    if (!name || !email || !password) {
+      return sendResponse(res, 400, false, "Name, email, password required");
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -30,11 +31,6 @@ export const createUser = async (req, res) => {
       email,
       password,
       photo,
-      rank,
-      xp,
-      quizzes,
-      score,
-      streak,
       role,
       agreeToTerms
     });
@@ -49,24 +45,31 @@ export const createUser = async (req, res) => {
 };
 
 
+
 // GET PROFILE
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
 
+    if (!user) {
+      return sendResponse(res, 404, false, "User not found");
+    }
+
     return sendResponse(res, 200, true, "Profile fetched", user);
+
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }
 };
 
 
-// UPDATE PROFILE
-export const updateUserProfile = async (req, res) => {
-  try {
 
+// UPDATE PROFILE  (🔥 IMPORTANT FIX NAME)
+export const updateProfile = async (req, res) => {
+  try {
     const {
       name,
+      email,
       photo,
       rank,
       xp,
@@ -81,7 +84,9 @@ export const updateUserProfile = async (req, res) => {
       return sendResponse(res, 404, false, "User not found");
     }
 
+    // ✅ Safe updates
     if (name !== undefined) user.name = name;
+     if (email !== undefined) user.email = email; 
     if (photo !== undefined) user.photo = photo;
     if (rank !== undefined) user.rank = rank;
     if (xp !== undefined) user.xp = xp;
@@ -101,19 +106,18 @@ export const updateUserProfile = async (req, res) => {
 };
 
 
-// DELETE USER
-export const deleteUser = async (req, res) => {
+
+// 🔥 USER ANALYTICS (renamed from deleteUser ❗)
+export const getUserStats = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // CHANGE: userId → user
     const totalAttempts = await QuizSession.countDocuments({
       user: userId
     });
 
     const avgScore = await QuizSession.aggregate([
       {
-        // CHANGE: userId → user + ObjectId
         $match: { user: new mongoose.Types.ObjectId(userId) }
       },
       {
@@ -134,12 +138,19 @@ export const deleteUser = async (req, res) => {
   }
 };
 
+
+
 // DELETE PROFILE
 export const deleteProfile = async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.user.id);
+    const user = await User.findByIdAndDelete(req.user.id);
+
+    if (!user) {
+      return sendResponse(res, 404, false, "User not found");
+    }
 
     return sendResponse(res, 200, true, "Account deleted successfully");
+
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }

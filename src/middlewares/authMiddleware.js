@@ -1,11 +1,17 @@
+// src/middlewares/authMiddleware.js
+
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-//auth middleware to verify token and extract user info
+/**
+ * 🔐 VERIFY TOKEN (Authentication)
+ */
 export const verifyToken = async (req, res, next) => {
   try {
+    // 1️⃣ Get Authorization header
     const authHeader = req.headers.authorization;
 
+    // 2️⃣ Check if token exists
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
@@ -13,11 +19,14 @@ export const verifyToken = async (req, res, next) => {
       });
     }
 
+    // 3️⃣ Extract token
     const token = authHeader.split(" ")[1];
 
+    // 4️⃣ Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findById(decoded.id);
+    // 5️⃣ Find user (optimized query)
+    const user = await User.findById(decoded.id).select("_id role email");
 
     if (!user) {
       return res.status(401).json({
@@ -26,6 +35,7 @@ export const verifyToken = async (req, res, next) => {
       });
     }
 
+    // 6️⃣ Attach user to request
     req.user = {
       id: user._id,
       role: user.role,
@@ -33,6 +43,7 @@ export const verifyToken = async (req, res, next) => {
     };
 
     next();
+
   } catch (err) {
     return res.status(401).json({
       success: false,
@@ -42,10 +53,9 @@ export const verifyToken = async (req, res, next) => {
 };
 
 
-
-//role-based access control middleware
-
-
+/**
+ * 🔐 ROLE-BASED ACCESS CONTROL (Flexible)
+ */
 export const allowRoles = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -66,12 +76,29 @@ export const allowRoles = (...roles) => {
   };
 };
 
-/* MIDDLEWARE 4 — isAdmin  */
+
+/**
+ * 🔐 ADMIN ONLY
+ */
 export const isAdmin = (req, res, next) => {
-  if (req.user.role !== "admin") {
+  if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({
       success: false,
       message: "Access denied. Only admins can perform this action.",
+    });
+  }
+  next();
+};
+
+
+/**
+ * 🔐 MENTOR ONLY
+ */
+export const isMentor = (req, res, next) => {
+  if (!req.user || req.user.role !== "mentor") {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. Only mentors can perform this action.",
     });
   }
   next();

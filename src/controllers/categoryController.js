@@ -5,12 +5,11 @@ import QuizCollection from "../models/QuizCollection.js";
 import Module from "../models/Module.js";
 import Question from "../models/Questions.js";
 
-// CREATE CATEGORY
+// ✅ CREATE CATEGORY
 export const createCategory = async (req, res) => {
   try {
     const { title, description, category } = req.body;
 
-    //  Validation
     if (!title || !category) {
       return res.status(400).json({
         success: false,
@@ -40,8 +39,7 @@ export const createCategory = async (req, res) => {
 };
 
 
-
-//  GET ALL CATEGORIES
+// ✅ GET ALL CATEGORIES
 export const getAllCategories = async (req, res) => {
   try {
     const categories = await QuizCollection.find()
@@ -63,13 +61,11 @@ export const getAllCategories = async (req, res) => {
 };
 
 
-
-// GET SINGLE CATEGORY + MODULES
+// ✅ GET CATEGORY + MODULES
 export const getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    //  Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -106,14 +102,12 @@ export const getCategoryById = async (req, res) => {
 };
 
 
-
-//  UPDATE CATEGORY
+// ✅ UPDATE CATEGORY
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, category } = req.body;
 
-    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -155,13 +149,11 @@ export const updateCategory = async (req, res) => {
 };
 
 
-
-//  DELETE CATEGORY + CASCADE DELETE
+// ✅ DELETE CATEGORY (CASCADE)
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -178,13 +170,13 @@ export const deleteCategory = async (req, res) => {
       });
     }
 
-    //  Delete related modules
+    // Delete modules
     const modules = await Module.find({ collectionId: id });
     const moduleIds = modules.map((m) => m._id);
 
     await Module.deleteMany({ collectionId: id });
 
-    // Delete related questions
+    // Delete questions
     await Question.deleteMany({
       $or: [
         { collectionId: id },

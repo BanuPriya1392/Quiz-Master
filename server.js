@@ -11,8 +11,14 @@ import connectDB from "./src/config/database.js";
 import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import quizRoutes from "./src/routes/quizRoutes.js";
-import userQuizRoutes from "./src/routes/userQuizRoutes.js";
-import quizSessionRoutes from "./src/routes/quizSession.Routes.js";
+
+// ✅ ADD ALL MISSING IMPORTS
+import adminUserRoutes from "./src/routes/adminUserRoutes.js";
+import adminRoutes from "./src/routes/adminRoutes.js";
+import adminAnalyticsRoutes from "./src/routes/adminAnalyticsRoutes.js";
+import categoryRoutes from "./src/routes/categoryRoutes.js";
+import questionRoutes from "./src/routes/questionRoutes.js";
+import attemptRoutes from "./src/routes/attemptRoutes.js";
 
 // ENV
 dotenv.config();
@@ -31,38 +37,27 @@ app.use(
   })
 );
 
-//auth routes
+// Routes
 app.use("/api/auth", authRoutes);
-
-//user routes
 app.use("/api/users", userRoutes);
 
+// ✅ Admin routes
 app.use("/api/admin/users", adminUserRoutes);
-
-//admin routes
 app.use("/api/admin", adminRoutes);
-
-//admin analytics routes
 app.use("/api/admin/analytics", adminAnalyticsRoutes);
 
-//categories routes
+// ✅ Core routes
 app.use("/api/categories", categoryRoutes);
-
-//questions routes
 app.use("/api/questions", questionRoutes);
-
-//quizzes routes
 app.use("/api/quizzes", quizRoutes);
-
-//attempts routes
 app.use("/api/attempts", attemptRoutes);
 
-
+// Health check
 app.get("/", (req, res) => {
   res.send("Server Running Successfully");
 });
 
-
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
@@ -74,5 +69,5 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(` Server running on port ${PORT}`)
+  console.log(`Server running on port ${PORT}`);
 });
