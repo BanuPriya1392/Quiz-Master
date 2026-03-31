@@ -25,16 +25,16 @@ const userSchema = new mongoose.Schema(
     minlength:[10,"Password must be at least 10 characters"]
   },
 
-  confirmPassword:{
-   type:String,
-  required:[true,"Confirm Password is required"],
-   validate:{
-  validator:function(value){
-   return value === this.password;
-   },
-   message:"Passwords do not match"
-   }
-  },
+  // confirmPassword:{
+  //  type:String,
+  // required:[true,"Confirm Password is required"],
+  //  validate:{
+  // validator:function(value){
+  //  return value === this.password;
+  //  },
+  //  message:"Passwords do not match"
+  //  }
+  // },
 
   photo:{
     type:String,

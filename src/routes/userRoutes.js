@@ -1,28 +1,27 @@
 import express from "express";
-import { 
-  createUser,   
+import {
+  createUser,
   getUserProfile,
-  updateUserProfile,
-  deleteUser
+  updateProfile,
+  getUserStats,
+  deleteProfile
 } from "../controllers/userController.js";
 
 import { verifyToken } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// CREATE USER
-router.post("/register", createUser);
+// Create user
+router.post("/", createUser);
 
-//  GET PROFILE
+// Profile
 router.get("/profile", verifyToken, getUserProfile);
-
-// UPDATE PROFILE
 router.put("/profile", verifyToken, updateProfile);
 
-// GET STATS
-router.get("/profile/stats", verifyToken, getProfileStats);
+// Stats ✅ Fixed
+router.get("/profile/stats", verifyToken, getUserStats);
 
-// DELETE ACCOUNT
+// Delete account
 router.delete("/profile", verifyToken, deleteProfile);
 
 export default router;

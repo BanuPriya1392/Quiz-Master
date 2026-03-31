@@ -7,20 +7,30 @@ const optionSchema = new mongoose.Schema({
 
 const questionSchema = new mongoose.Schema(
   {
+    // ✅ Optional — for QuizCollection based questions
     collectionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "QuizCollection",
-      required: true,
+      default: null,
     },
+
+    // ✅ Added — for Quiz based questions
+    quizId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Quiz",
+      default: null,
+    },
+
     moduleId: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "Module",
-  default: null,
-},
-moduleName: {
-  type: String,
-  default: null, // "basics", "intermediate", etc.
-},
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Module",
+      default: null,
+    },
+
+    moduleName: {
+      type: String,
+      default: null,
+    },
 
     question: {
       type: String,
@@ -46,8 +56,7 @@ moduleName: {
             const noDuplicates = new Set(ids).size === 4;
             return allPresent && noDuplicates;
           },
-          message:
-            "Options must contain exactly one entry each for A, B, C, and D.",
+          message: "Options must contain exactly one entry each for A, B, C, and D.",
         },
       ],
     },
@@ -55,13 +64,13 @@ moduleName: {
     correct: {
       type: String,
       enum: ["A", "B", "C", "D"],
-      required: true,
+      required: [true, "Correct answer is required."],
     },
 
     tip: {
       type: String,
-      required: true,
       trim: true,
+      default: null, // ✅ No longer required
     },
 
     createdBy: {
@@ -73,6 +82,13 @@ moduleName: {
   { timestamps: true, versionKey: false }
 );
 
-// IMPORTANT FIX
+// ✅ At least one of collectionId or quizId must be present
+questionSchema.pre("save", function (next) {
+  if (!this.collectionId && !this.quizId) {
+    return next(new Error("Either collectionId or quizId is required."));
+  }
+  next();
+});
+
 const Question = mongoose.model("QuizQuestion", questionSchema);
 export default Question;

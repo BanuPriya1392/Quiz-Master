@@ -8,22 +8,70 @@ import {
   deleteModule,
   getAllModules,
 } from "../controllers/moduleController.js";
-import { verifyToken, isMentor } from "../middlewares/authMiddleware.js";
 
-const router = express.Router({ mergeParams: true }); // ← critical
+import { verifyToken, allowRoles } from "../middlewares/authMiddleware.js";
 
-// /api/categories/:categoryId/modules
+const router = express.Router({ mergeParams: true });
+
+/**
+ * CATEGORY MODULE ROUTES
+ * /api/categories/:categoryId/modules
+ */
+
+// Get modules by category
 router.get("/", verifyToken, getModulesByCollection);
-router.post("/", verifyToken, isMentor, createModule);
 
-// /api/categories/:categoryId/modules/:moduleId
-router.patch("/:moduleId", verifyToken, isMentor, updateModule);
-router.delete("/:moduleId", verifyToken, isMentor, deleteModule);
+// Create module
+router.post(
+  "/",
+  verifyToken,
+  allowRoles("mentor", "admin"),
+  createModule
+);
 
-// /api/categories/:categoryId/modules/:moduleId/questions
-router.post("/:moduleId/questions", verifyToken, isMentor, addQuestionsToModule);
+/**
+ * SINGLE MODULE ROUTES
+ * /api/categories/:categoryId/modules/:moduleId
+ */
 
-// standalone - get all modules (admin use)
-router.get("/all", verifyToken, getAllModules);
+// Update module
+router.patch(
+  "/:moduleId",
+  verifyToken,
+  allowRoles("mentor", "admin"),
+  updateModule
+);
+
+// Delete module
+router.delete(
+  "/:moduleId",
+  verifyToken,
+  allowRoles("mentor", "admin"),
+  deleteModule
+);
+
+/**
+ * MODULE QUESTIONS
+ */
+
+// Add questions to module
+router.post(
+  "/:moduleId/questions",
+  verifyToken,
+  allowRoles("mentor", "admin"),
+  addQuestionsToModule
+);
+
+/**
+ * ADMIN ROUTE
+ */
+
+// Get all modules
+router.get(
+  "/all",
+  verifyToken,
+  allowRoles("admin"),
+  getAllModules
+);
 
 export default router;
