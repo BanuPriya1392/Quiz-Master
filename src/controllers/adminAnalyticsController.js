@@ -21,7 +21,26 @@ export const getAppOverview = async (req, res, next) => {
       },
     ]);
 
+    const accuracyData = await QuizSession.aggregate([
+      { $match: { isCompleted: true } },
+      {
+        $group: {
+          _id: null,
+          totalCorrect: { $sum: "$correctAnswers" },
+          totalQuestions: { $sum: "$totalQuestions" },
+        },
+      },
+    ]);
+
     const averageScore = avgScoreData[0]?.avgScore || 0;
+
+    const accuracy =
+      accuracyData[0]?.totalQuestions > 0
+        ? (
+            (accuracyData[0].totalCorrect / accuracyData[0].totalQuestions) *
+            100
+          ).toFixed(1)
+        : 0;
 
     res.status(200).json({
       success: true,
@@ -30,6 +49,7 @@ export const getAppOverview = async (req, res, next) => {
         totalAttempts,
         completedAttempts,
         averageScore: Number(averageScore.toFixed(1)),
+        accuracy: `${accuracy}%`,
       },
     });
   } catch (err) {
