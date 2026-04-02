@@ -5,7 +5,7 @@ import QuizCollection from "../models/QuizCollection.js";
 import Module from "../models/Module.js";
 import Question from "../models/Questions.js";
 
-// ✅ CREATE CATEGORY
+//  CREATE CATEGORY
 export const createCategory = async (req, res) => {
   try {
     const { title, description, category } = req.body;
@@ -39,7 +39,7 @@ export const createCategory = async (req, res) => {
 };
 
 
-// ✅ GET ALL CATEGORIES
+//  GET ALL CATEGORIES
 export const getAllCategories = async (req, res) => {
   try {
     const categories = await QuizCollection.find()
@@ -61,7 +61,7 @@ export const getAllCategories = async (req, res) => {
 };
 
 
-// ✅ GET CATEGORY + MODULES
+//  GET CATEGORY + MODULES
 export const getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -102,7 +102,7 @@ export const getCategoryById = async (req, res) => {
 };
 
 
-// ✅ UPDATE CATEGORY
+//  UPDATE CATEGORY
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -149,7 +149,7 @@ export const updateCategory = async (req, res) => {
 };
 
 
-// ✅ DELETE CATEGORY (CASCADE)
+//  DELETE CATEGORY (CASCADE)
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;

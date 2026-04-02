@@ -217,7 +217,13 @@ export const submitAttempt = async (req, res, next) => {
 
       if (!question) continue;
 
-      const correctAnswer = question.correct; 
+      const correctAnswer = question.correct;
+
+      //  GET CORRECT OPTION TEXT
+      const correctOptionObj = question.options.find(
+        (opt) => opt.id === correctAnswer
+      );
+
       const isCorrect = ans.selectedOption === correctAnswer;
 
       if (isCorrect) {
@@ -227,15 +233,19 @@ export const submitAttempt = async (req, res, next) => {
         wrong++;
       }
 
+      //  UPDATED RESPONSE OBJECT
       evaluatedAnswers.push({
         questionId: question._id,
+        question: question.question,
+        options: question.options,
         selectedOption: ans.selectedOption,
         correctAnswer,
+        correctAnswerText: correctOptionObj?.text,
         isCorrect,
       });
     }
 
-    //  Time taken
+    // Time taken
     const completedAt = new Date();
     const timeTaken = Math.floor(
       (completedAt - new Date(session.startedAt)) / 1000
@@ -252,7 +262,7 @@ export const submitAttempt = async (req, res, next) => {
 
     await session.save();
 
-    // RESPONSE WITH RESULT
+    // FINAL RESPONSE
     res.status(200).json({
       success: true,
       message: "Quiz submitted successfully",
@@ -270,10 +280,7 @@ export const submitAttempt = async (req, res, next) => {
   }
 };
 
-
-/**
- * ── GET ATTEMPT HISTORY ──
- */
+//get quiz performance
 export const getAttemptHistory = async (req, res, next) => {
   try {
     const attempts = await QuizSession.find({
@@ -290,9 +297,7 @@ export const getAttemptHistory = async (req, res, next) => {
   }
 };
 
-/**
- * ── GET ATTEMPT BY ID ──
- */
+//get attempt by id
 export const getAttemptById = async (req, res, next) => {
   try {
     const { attemptId } = req.params;
