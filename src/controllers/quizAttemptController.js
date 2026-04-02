@@ -210,37 +210,40 @@ export const submitAttempt = async (req, res, next) => {
 
     const evaluatedAnswers = [];
 
-    for (let ans of answers) {
-      const question = questions.find(
-        (q) => q._id.toString() === ans.questionId
-      );
 
-      if (!question) continue;
+    for (let question of questions) {
+      const ans = answers.find(
+        (a) => a.questionId === question._id.toString()
+      );
 
       const correctAnswer = question.correct;
 
-      //  GET CORRECT OPTION TEXT
+   
       const correctOptionObj = question.options.find(
-        (opt) => opt.id === correctAnswer
+        (opt) =>
+          opt.id.toLowerCase() === correctAnswer.toLowerCase()
       );
 
-      const isCorrect = ans.selectedOption === correctAnswer;
+      const selectedOption = ans?.selectedOption || null;
 
-      if (isCorrect) {
-        score++;
-        correct++;
-      } else {
-        wrong++;
+      const isCorrect = selectedOption === correctAnswer;
+
+      if (selectedOption) {
+        if (isCorrect) {
+          score++;
+          correct++;
+        } else {
+          wrong++;
+        }
       }
 
-      //  UPDATED RESPONSE OBJECT
       evaluatedAnswers.push({
         questionId: question._id,
         question: question.question,
         options: question.options,
-        selectedOption: ans.selectedOption,
+        selectedOption,
         correctAnswer,
-        correctAnswerText: correctOptionObj?.text,
+        correctAnswerText: correctOptionObj?.text || "Answer not available",
         isCorrect,
       });
     }
@@ -251,7 +254,7 @@ export const submitAttempt = async (req, res, next) => {
       (completedAt - new Date(session.startedAt)) / 1000
     );
 
-    // Save everything
+    // Save
     session.answers = evaluatedAnswers;
     session.score = score;
     session.correctAnswers = correct;
@@ -262,7 +265,7 @@ export const submitAttempt = async (req, res, next) => {
 
     await session.save();
 
-    // FINAL RESPONSE
+    // Response
     res.status(200).json({
       success: true,
       message: "Quiz submitted successfully",
