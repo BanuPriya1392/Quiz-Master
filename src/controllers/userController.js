@@ -16,7 +16,7 @@ export const createUser = async (req, res) => {
       agreeToTerms
     } = req.body;
 
-    // ✅ Validation
+    //  Validation
     if (!name || !email || !password) {
       return sendResponse(res, 400, false, "Name, email, password required");
     }
@@ -64,7 +64,7 @@ export const getUserProfile = async (req, res) => {
 
 
 
-// UPDATE PROFILE  (🔥 IMPORTANT FIX NAME)
+// UPDATE PROFILE  
 export const updateProfile = async (req, res) => {
   try {
     const {
@@ -84,7 +84,7 @@ export const updateProfile = async (req, res) => {
       return sendResponse(res, 404, false, "User not found");
     }
 
-    // ✅ Safe updates
+    // Safe updates
     if (name !== undefined) user.name = name;
      if (email !== undefined) user.email = email; 
     if (photo !== undefined) user.photo = photo;
@@ -107,7 +107,7 @@ export const updateProfile = async (req, res) => {
 
 
 
-// 🔥 USER ANALYTICS (renamed from deleteUser ❗)
+// USER ANALYTICS 
 export const getUserStats = async (req, res) => {
   try {
     const userId = req.user.id;
