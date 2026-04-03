@@ -19,6 +19,8 @@ import adminAnalyticsRoutes from "./src/routes/adminAnalyticsRoutes.js";
 import categoryRoutes from "./src/routes/categoryRoutes.js";
 import questionRoutes from "./src/routes/questionRoutes.js";
 import attemptRoutes from "./src/routes/attemptRoutes.js";
+import wishlistRoutes from "./src/routes/wishlistRoutes.js";
+
 
 // ENV
 dotenv.config();
@@ -51,6 +53,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/attempts", attemptRoutes);
+app.use("/api/wishlist", wishlistRoutes);
 
 // Health check
 app.get("/", (req, res) => {
