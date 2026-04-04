@@ -8,12 +8,27 @@ import Module from "../models/Module.js";
 export const getAllQuestions = async (req, res, next) => {
   try {
     const questions = await Question.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, total: questions.length, data: questions });
+
+    const updatedQuestions = questions.map((q) => {
+      const correctOption = q.options.find(
+        (opt) => opt.id === q.correct
+      );
+
+      return {
+        ...q.toObject(),
+        correctAnswerText: correctOption?.text || "Not available",
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      total: updatedQuestions.length,
+      data: updatedQuestions,
+    });
   } catch (err) {
     next(err);
   }
 };
-
 // get question by id
 export const getQuestionById = async (req, res, next) => {
   try {
@@ -159,7 +174,7 @@ export const deleteQuestion = async (req, res, next) => {
 export const getQuestionsByCollection = async (req, res, next) => {
   try {
     const { collectionId } = req.params;
-    const { grouped } = req.query; 
+    const { grouped } = req.query;
 
     if (grouped === "true") {
       const result = await Question.aggregate([
@@ -181,9 +196,22 @@ export const getQuestionsByCollection = async (req, res, next) => {
       ]);
 
       const formatted = {};
+
       result.forEach(({ _id, questions }) => {
         const key = _id.moduleName ?? "unassigned";
-        formatted[key] = questions;
+
+        const updatedQuestions = questions.map((q) => {
+          const correctOption = q.options.find(
+            (opt) => opt.id === q.correct
+          );
+
+          return {
+            ...q,
+            correctAnswerText: correctOption?.text || "Not available",
+          };
+        });
+
+        formatted[key] = updatedQuestions;
       });
 
       return res.status(200).json({ success: true, data: formatted });
@@ -193,7 +221,23 @@ export const getQuestionsByCollection = async (req, res, next) => {
       $or: [{ collectionId }, { quizId: collectionId }],
     });
 
-    res.status(200).json({ success: true, total: questions.length, data: questions });
+   
+    const updatedQuestions = questions.map((q) => {
+      const correctOption = q.options.find(
+        (opt) => opt.id === q.correct
+      );
+
+      return {
+        ...q.toObject(),
+        correctAnswerText: correctOption?.text || "Not available",
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      total: updatedQuestions.length,
+      data: updatedQuestions,
+    });
   } catch (err) {
     next(err);
   }

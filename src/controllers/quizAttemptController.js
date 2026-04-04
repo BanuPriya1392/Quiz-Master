@@ -169,7 +169,7 @@ export const startCombinedAttempt = async (req, res, next) => {
   }
 };
 
-//submit quiz attempt
+// submit quiz attempt
 export const submitAttempt = async (req, res, next) => {
   try {
     const { sessionId } = req.params;
@@ -210,7 +210,6 @@ export const submitAttempt = async (req, res, next) => {
 
     const evaluatedAnswers = [];
 
-
     for (let question of questions) {
       const ans = answers.find(
         (a) => a.questionId === question._id.toString()
@@ -218,7 +217,7 @@ export const submitAttempt = async (req, res, next) => {
 
       const correctAnswer = question.correct;
 
-   
+      //  Correct option object
       const correctOptionObj = question.options.find(
         (opt) =>
           opt.id.toLowerCase() === correctAnswer.toLowerCase()
@@ -226,7 +225,16 @@ export const submitAttempt = async (req, res, next) => {
 
       const selectedOption = ans?.selectedOption || null;
 
-      const isCorrect = selectedOption === correctAnswer;
+    //  Selected option object
+      const selectedOptionObj = question.options.find(
+        (opt) =>
+          opt.id.toLowerCase() === selectedOption?.toLowerCase()
+      );
+
+      // Safe comparison
+      const isCorrect =
+        selectedOption?.toLowerCase() ===
+        correctAnswer.toLowerCase();
 
       if (selectedOption) {
         if (isCorrect) {
@@ -241,9 +249,15 @@ export const submitAttempt = async (req, res, next) => {
         questionId: question._id,
         question: question.question,
         options: question.options,
+
         selectedOption,
+        selectedAnswerText:
+          selectedOptionObj?.text || "Not answered",
+
         correctAnswer,
-        correctAnswerText: correctOptionObj?.text || "Answer not available",
+        correctAnswerText:
+          correctOptionObj?.text || "Answer not available",
+
         isCorrect,
       });
     }
@@ -254,7 +268,7 @@ export const submitAttempt = async (req, res, next) => {
       (completedAt - new Date(session.startedAt)) / 1000
     );
 
-    // Save
+    // Save session
     session.answers = evaluatedAnswers;
     session.score = score;
     session.correctAnswers = correct;
