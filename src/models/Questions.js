@@ -7,14 +7,14 @@ const optionSchema = new mongoose.Schema({
 
 const questionSchema = new mongoose.Schema(
   {
-    // ✅ Optional — for QuizCollection based questions
+    
     collectionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "QuizCollection",
       default: null,
     },
 
-    // ✅ Added — for Quiz based questions
+   
     quizId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Quiz",
@@ -70,7 +70,7 @@ const questionSchema = new mongoose.Schema(
     tip: {
       type: String,
       trim: true,
-      default: null, // ✅ No longer required
+      default: null, 
     },
 
     createdBy: {
@@ -82,10 +82,11 @@ const questionSchema = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
-// ✅ At least one of collectionId or quizId must be present
 questionSchema.pre("save", function (next) {
-  if (!this.collectionId && !this.quizId) {
-    return next(new Error("Either collectionId or quizId is required."));
+  if (!this.collectionId && !this.quizId && !this.moduleId) {
+    return next(
+      new Error("At least one of collectionId, quizId, or moduleId is required.")
+    );
   }
   next();
 });
