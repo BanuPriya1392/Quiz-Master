@@ -1,66 +1,27 @@
 // src/controllers/moduleController.js
-
+import mongoose from "mongoose";
 import Module from "../models/Module.js";
-import Question from "../models/Questions.js";
+import Quiz from "../models/Quiz.js";
 
 
-//  POST /api/categories/:id/modules
-export const createModule = async (req, res, next) => {
+// CREATE MODULE
+export const createModule = async (req, res) => {
   try {
-    const collectionId = req.params.id;
-    const body = req.body;
+    const { categoryId } = req.params;
+    const { name, order } = req.body;
 
-   //bulks insert
-    if (Array.isArray(body)) {
-
-      const modulesToInsert = body.map((item, index) => {
-        if (!item.name || typeof item.name !== "string") {
-          throw new Error(`Invalid name at index ${index}`);
-        }
-
-        return {
-          name: item.name.trim().toLowerCase(),
-          order: item.order ?? 0,
-          collectionId,
-          createdBy: req.user?.id,
-        };
-      });
-
-      const created = await Module.insertMany(modulesToInsert);
-
-      return res.status(201).json({
-        success: true,
-        message: `${created.length} modules created`,
-        data: created,
-      });
-    }
-
-   // Single insert
-    const { name, order } = body;
-
-    if (!name || typeof name !== "string") {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: "Module name is required and must be a string",
-      });
-    }
-
-    const cleanName = name.trim().toLowerCase();
-
-    const existing = await Module.findOne({ name: cleanName, collectionId });
-
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: `Module "${name}" already exists`,
+        message: "Module name is required",
       });
     }
 
     const module = await Module.create({
-      name: cleanName,
-      order: order ?? 0,
-      collectionId,
-      createdBy: req.user?.id,
+      name: name.trim(),
+      collectionId: categoryId,
+      order: order || 0,
+      createdBy: req.user.id,
     });
 
     res.status(201).json({
@@ -70,41 +31,58 @@ export const createModule = async (req, res, next) => {
     });
 
   } catch (err) {
-    next(err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
 
-
-// GET /api/categories/:id/modules
-export const getModulesByCollection = async (req, res, next) => {
+//  GET MODULES BY CATEGORY
+export const getModulesByCollection = async (req, res) => {
   try {
-    const collectionId = req.params.id;
+    const { categoryId } = req.params;
 
-    const modules = await Module.find({ collectionId })
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid category ID",
+      });
+    }
+
+    const modules = await Module.find({ collectionId: categoryId })
       .sort({ order: 1 });
 
     res.status(200).json({
       success: true,
-      total: modules.length,
+      count: modules.length,
       data: modules,
     });
 
   } catch (err) {
-    next(err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
 
-
-// POST /api/categories/:id/modules/:moduleId/questions
-export const addQuestionsToModule = async (req, res, next) => {
+//  GET SINGLE MODULE + QUIZZES
+export const getModuleById = async (req, res) => {
   try {
     const { moduleId } = req.params;
-    const { questions } = req.body;
 
-    // Validate module
+    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid module ID",
+      });
+    }
+
     const module = await Module.findById(moduleId);
+
     if (!module) {
       return res.status(404).json({
         success: false,
@@ -112,94 +90,46 @@ export const addQuestionsToModule = async (req, res, next) => {
       });
     }
 
-    // Validate questions
-    if (!Array.isArray(questions) || questions.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Questions array required",
-      });
-    }
+    // only quizzes of this module
+    const quizzes = await Quiz.find({ module: moduleId });
 
-    //  Limit (max 3)
-    const currentCount = await Question.countDocuments({
-      moduleId: module._id,
-    });
-
-    if (currentCount >= 3) {
-      return res.status(400).json({
-        success: false,
-        message: `Module "${module.name}" already has 3 questions`,
-      });
-    }
-
-    if (currentCount + questions.length > 3) {
-      return res.status(400).json({
-        success: false,
-        message: `Only ${3 - currentCount} more questions allowed`,
-      });
-    }
-
-    //  Prepare docs
-    const docs = questions.map((q) => {
-      if (!q.question || !q.options || !q.correct) {
-        throw new Error("Invalid question format");
-      }
-
-      return {
-        ...q,
-        moduleId: module._id,
-        moduleName: module.name,
-        collectionId: module.collectionId,
-        createdBy: req.user?.id,
-      };
-    });
-
-    //  Insert
-    const created = await Question.insertMany(docs);
-
-    // Update total questions
-    const count = await Question.countDocuments({
-      moduleId: module._id,
-    });
-
-    await Module.findByIdAndUpdate(moduleId, {
-      totalQues: count,
-    });
-
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      message: `${created.length} questions added`,
-      data: created,
+      data: {
+        ...module.toObject(),
+        quizzes,
+      },
     });
 
   } catch (err) {
-    next(err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
 
-
-// PATCH /api/categories/:id/modules/:moduleId
-export const updateModule = async (req, res, next) => {
+// UPDATE MODULE
+export const updateModule = async (req, res) => {
   try {
     const { moduleId } = req.params;
     const { name, order } = req.body;
 
-    const updateData = {};
-
-    //  Safe update
-    if (name) {
-      updateData.name = name.trim().toLowerCase();
-    }
-
-    if (order !== undefined) {
-      updateData.order = order;
+    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid module ID",
+      });
     }
 
     const updated = await Module.findByIdAndUpdate(
       moduleId,
-      updateData,
-      { new: true, runValidators: true }
+      {
+        ...(name && { name: name.trim() }),
+        ...(order !== undefined && { order }),
+      },
+      { new: true }
     );
 
     if (!updated) {
@@ -216,16 +146,25 @@ export const updateModule = async (req, res, next) => {
     });
 
   } catch (err) {
-    next(err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
 
-
-//  DELETE /api/categories/:id/modules/:moduleId
-export const deleteModule = async (req, res, next) => {
+//  DELETE MODULE
+export const deleteModule = async (req, res) => {
   try {
     const { moduleId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid module ID",
+      });
+    }
 
     const module = await Module.findByIdAndDelete(moduleId);
 
@@ -236,34 +175,38 @@ export const deleteModule = async (req, res, next) => {
       });
     }
 
-    // Delete related questions
-    await Question.deleteMany({ moduleId: module._id });
+    //  delete quizzes of this module
+    await Quiz.deleteMany({ module: moduleId });
 
     res.status(200).json({
       success: true,
-      message: "Module and related questions deleted",
+      message: "Module & related quizzes deleted",
     });
 
   } catch (err) {
-    next(err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
 
-
-// GET /api/categories/:id/modules/all  (admin)
-export const getAllModules = async (req, res, next) => {
+//  ADMIN GET ALL MODULES
+export const getAllModules = async (req, res) => {
   try {
-    const modules = await Module.find()
-      .sort({ createdAt: -1 });
+    const modules = await Module.find().sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      total: modules.length,
+      count: modules.length,
       data: modules,
     });
 
   } catch (err) {
-    next(err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };

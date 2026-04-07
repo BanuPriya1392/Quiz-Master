@@ -1,10 +1,7 @@
-// src/controllers/quizController.js
-
 import Quiz from "../models/Quiz.js";
 import Question from "../models/Questions.js";
 
-
-//  GET /api/quizzes (only published)
+// GET /api/quizzes (only published)
 export const getAllQuizzes = async (req, res, next) => {
   try {
     const { category } = req.query;
@@ -24,15 +21,12 @@ export const getAllQuizzes = async (req, res, next) => {
       count: quizzes.length,
       data: quizzes,
     });
-
   } catch (err) {
     next(err);
   }
 };
 
-
-
-//  GET /api/quizzes/:quizId (with questions)
+// GET /api/quizzes/:quizId
 export const getQuizById = async (req, res, next) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId)
@@ -41,31 +35,28 @@ export const getQuizById = async (req, res, next) => {
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Quiz not found"
+        message: "Quiz not found",
       });
     }
 
-    //  Fetch questions using moduleIds
+    //  FIX: fetch using quizId
     const questions = await Question.find({
-      moduleId: { $in: quiz.modules }
+      quizId: quiz._id,
     }).select("-correct -tip");
 
     res.status(200).json({
       success: true,
       data: {
         ...quiz.toObject(),
-        questions
-      }
+        questions,
+      },
     });
-
   } catch (err) {
     next(err);
   }
 };
 
-
-
-//  POST /api/admin/quizzes
+// POST /api/quizzes
 export const createQuiz = async (req, res, next) => {
   try {
     const { title, description, categoryId, difficulty, moduleIds } = req.body;
@@ -73,16 +64,15 @@ export const createQuiz = async (req, res, next) => {
     if (!title || !categoryId || !moduleIds || moduleIds.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "title, categoryId, moduleIds are required"
+        message: "title, categoryId, moduleIds are required",
       });
     }
 
-    //  prevent duplicate title
     const existing = await Quiz.findOne({ title: title.trim() });
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: "Quiz title already exists"
+        message: "Quiz title already exists",
       });
     }
 
@@ -90,7 +80,7 @@ export const createQuiz = async (req, res, next) => {
       title: title.trim(),
       description,
       category: categoryId,
-      modules: moduleIds, // 🔥 important
+      modules: moduleIds, // keep as is
       difficulty: difficulty || "easy",
       totalQues: 0,
       status: "unpublished",
@@ -100,17 +90,14 @@ export const createQuiz = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: "Quiz created",
-      data: quiz
+      data: quiz,
     });
-
   } catch (err) {
     next(err);
   }
 };
 
-
-
-//  PUT /api/admin/quizzes/:quizId
+// PUT /api/quizzes/:quizId
 export const updateQuiz = async (req, res, next) => {
   try {
     const { title, description, categoryId, difficulty, moduleIds } = req.body;
@@ -121,7 +108,7 @@ export const updateQuiz = async (req, res, next) => {
     if (description) updateData.description = description;
     if (categoryId) updateData.category = categoryId;
     if (difficulty) updateData.difficulty = difficulty;
-    if (moduleIds) updateData.modules = moduleIds; // 🔥 allow update modules
+    if (moduleIds) updateData.modules = moduleIds;
 
     const quiz = await Quiz.findByIdAndUpdate(
       req.params.quizId,
@@ -132,24 +119,21 @@ export const updateQuiz = async (req, res, next) => {
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Quiz not found"
+        message: "Quiz not found",
       });
     }
 
     res.status(200).json({
       success: true,
       message: "Quiz updated",
-      data: quiz
+      data: quiz,
     });
-
   } catch (err) {
     next(err);
   }
 };
 
-
-
-// DELETE /api/admin/quizzes/:quizId
+// DELETE
 export const deleteQuiz = async (req, res, next) => {
   try {
     const quiz = await Quiz.findByIdAndDelete(req.params.quizId);
@@ -157,26 +141,20 @@ export const deleteQuiz = async (req, res, next) => {
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Quiz not found"
+        message: "Quiz not found",
       });
     }
 
-    // ❗ OPTIONAL: only if you want to delete questions (not recommended now)
-    // await Question.deleteMany({ moduleId: { $in: quiz.modules } });
-
     res.status(200).json({
       success: true,
-      message: "Quiz deleted"
+      message: "Quiz deleted",
     });
-
   } catch (err) {
     next(err);
   }
 };
 
-
-
-// PATCH /api/admin/quizzes/:quizId/publish
+// PUBLISH
 export const publishQuiz = async (req, res, next) => {
   try {
     const quiz = await Quiz.findById(req.params.quizId);
@@ -184,23 +162,22 @@ export const publishQuiz = async (req, res, next) => {
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Quiz not found"
+        message: "Quiz not found",
       });
     }
 
-    // count questions from modules
+    //  FIX: count using quizId
     const questionCount = await Question.countDocuments({
-      moduleId: { $in: quiz.modules }
+      quizId: quiz._id,
     });
 
     if (questionCount < 3) {
       return res.status(400).json({
         success: false,
-        message: `Need at least 3 questions. Now: ${questionCount}`
+        message: `Need at least 3 questions. Now: ${questionCount}`,
       });
     }
 
-    // update total questions
     quiz.totalQues = questionCount;
     quiz.status = "published";
     quiz.publishedAt = new Date();
@@ -210,24 +187,21 @@ export const publishQuiz = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Quiz published",
-      data: quiz
+      data: quiz,
     });
-
   } catch (err) {
     next(err);
   }
 };
 
-
-
-//  PATCH /api/admin/quizzes/:quizId/unpublish
+// UNPUBLISH
 export const unpublishQuiz = async (req, res, next) => {
   try {
     const quiz = await Quiz.findByIdAndUpdate(
       req.params.quizId,
       {
         status: "unpublished",
-        publishedAt: null
+        publishedAt: null,
       },
       { new: true }
     );
@@ -235,16 +209,15 @@ export const unpublishQuiz = async (req, res, next) => {
     if (!quiz) {
       return res.status(404).json({
         success: false,
-        message: "Quiz not found"
+        message: "Quiz not found",
       });
     }
 
     res.status(200).json({
       success: true,
       message: "Quiz unpublished",
-      data: quiz
+      data: quiz,
     });
-
   } catch (err) {
     next(err);
   }

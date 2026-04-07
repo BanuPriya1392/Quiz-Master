@@ -1,5 +1,3 @@
-// server.js
-
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -12,7 +10,7 @@ import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import quizRoutes from "./src/routes/quizRoutes.js";
 
-//  ADD ALL MISSING IMPORTS
+// ADD ALL MISSING IMPORTS
 import adminUserRoutes from "./src/routes/adminUserRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import adminAnalyticsRoutes from "./src/routes/adminAnalyticsRoutes.js";
@@ -20,7 +18,6 @@ import categoryRoutes from "./src/routes/categoryRoutes.js";
 import questionRoutes from "./src/routes/questionRoutes.js";
 import attemptRoutes from "./src/routes/attemptRoutes.js";
 import wishlistRoutes from "./src/routes/wishlistRoutes.js";
-
 
 // ENV
 dotenv.config();
@@ -43,12 +40,13 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 
-//  Admin routes
+// Admin routes
 app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/analytics", adminAnalyticsRoutes);
 
-//  Core routes
+// Core routes
+// Categories (with nested module routes inside categoryRoutes.js)
 app.use("/api/categories", categoryRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/quizzes", quizRoutes);

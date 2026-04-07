@@ -12,11 +12,14 @@ import { verifyToken, isMentor } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
+// Category CRUD
 router.get("/", getAllCategories);
 router.post("/", verifyToken, isMentor, createCategory);
-router.put("/:id", verifyToken, isMentor, updateCategory);
-router.delete("/:id", verifyToken, isMentor, deleteCategory);
-router.use("/:id/modules", moduleRouter);
-router.get("/:id", getCategoryById);
+router.put("/:categoryId", verifyToken, isMentor, updateCategory);
+router.delete("/:categoryId", verifyToken, isMentor, deleteCategory);
+router.get("/:categoryId", getCategoryById);
+
+// Nested module routes
+router.use("/:categoryId/modules", moduleRouter);
 
 export default router;

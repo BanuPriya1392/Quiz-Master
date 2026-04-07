@@ -1,26 +1,39 @@
-// src/controllers/categoryController.js
-
 import mongoose from "mongoose";
 import QuizCollection from "../models/QuizCollection.js";
 import Module from "../models/Module.js";
 import Question from "../models/Questions.js";
 
+
 //  CREATE CATEGORY
 export const createCategory = async (req, res) => {
   try {
-    const { title, description, category } = req.body;
+    const { name, description } = req.body;
 
-    if (!title || !category) {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: "Title and category are required",
+        message: "Category name is required",
+      });
+    }
+
+    const trimmedName = name.trim();
+
+    //  Prevent duplicate
+    const existing = await QuizCollection.findOne({
+      title: trimmedName,
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "Category already exists",
       });
     }
 
     const newCategory = await QuizCollection.create({
-      title: title.trim(),
+      title: trimmedName,              // map name → title
       description: description?.trim() || "",
-      category: category.trim(),
+      category: trimmedName,           // keeping same value
       createdBy: req.user?.id,
     });
 
@@ -64,16 +77,18 @@ export const getAllCategories = async (req, res) => {
 //  GET CATEGORY + MODULES
 export const getCategoryById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { categoryId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    console.log("Incoming ID:", categoryId); // debug
+
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
       return res.status(400).json({
         success: false,
         message: "Invalid category ID",
       });
     }
 
-    const category = await QuizCollection.findById(id);
+    const category = await QuizCollection.findById(categoryId);
 
     if (!category) {
       return res.status(404).json({
@@ -82,7 +97,7 @@ export const getCategoryById = async (req, res) => {
       });
     }
 
-    const modules = await Module.find({ collectionId: id })
+    const modules = await Module.find({ collectionId: categoryId })
       .sort({ order: 1 });
 
     res.status(200).json({
@@ -106,7 +121,7 @@ export const getCategoryById = async (req, res) => {
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, category } = req.body;
+    const { name, description } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -117,9 +132,29 @@ export const updateCategory = async (req, res) => {
 
     const updateData = {};
 
-    if (title) updateData.title = title.trim();
-    if (description !== undefined) updateData.description = description.trim();
-    if (category) updateData.category = category.trim();
+    if (name) {
+      const trimmedName = name.trim();
+
+      //  Prevent duplicate (excluding same doc)
+      const existing = await QuizCollection.findOne({
+        title: trimmedName,
+        _id: { $ne: id },
+      });
+
+      if (existing) {
+        return res.status(400).json({
+          success: false,
+          message: "Category name already exists",
+        });
+      }
+
+      updateData.title = trimmedName;
+      updateData.category = trimmedName;
+    }
+
+    if (description !== undefined) {
+      updateData.description = description.trim();
+    }
 
     const updated = await QuizCollection.findByIdAndUpdate(
       id,
@@ -170,13 +205,13 @@ export const deleteCategory = async (req, res) => {
       });
     }
 
-    // Delete modules
+    //  Delete modules
     const modules = await Module.find({ collectionId: id });
     const moduleIds = modules.map((m) => m._id);
 
     await Module.deleteMany({ collectionId: id });
 
-    // Delete questions
+    //  Delete questions
     await Question.deleteMany({
       $or: [
         { collectionId: id },
