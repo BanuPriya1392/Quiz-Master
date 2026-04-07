@@ -13,14 +13,9 @@ const questionSchema = new mongoose.Schema(
       default: null,
     },
 
-    moduleId: {
+    categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Module",
-      default: null,
-    },
-
-    moduleName: {
-      type: String,
       default: null,
     },
 
@@ -81,8 +76,8 @@ const questionSchema = new mongoose.Schema(
 );
 
 questionSchema.pre("save", function () {
-  if (!this.quizId && !this.moduleId) {
-    return next(new Error("At least one of quizId or moduleId is required."));
+  if (!this.quizId && !this.categoryId) {
+    return next(new Error("At least one of quizId or categoryId is required."));
   }
 });
 

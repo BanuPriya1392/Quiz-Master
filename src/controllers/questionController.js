@@ -1,6 +1,5 @@
 import Question from "../models/Questions.js";
 import Quiz from "../models/Quiz.js"; //  NEW
-import Module from "../models/Module.js";
 import { updateTotalQuestions } from "../utils/updateTotalQuestions.js";
 import mongoose from "mongoose";
 
@@ -33,7 +32,9 @@ export const getQuestionById = async (req, res, next) => {
   try {
     const question = await Question.findById(req.params.id);
     if (!question)
-      return res.status(404).json({ success: false, message: "Question not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
 
     res.status(200).json({ success: true, data: question });
   } catch (err) {
@@ -51,7 +52,9 @@ export const createQuestion = async (req, res, next) => {
     if (req.body.moduleId) {
       const module = await Module.findById(req.body.moduleId);
       if (!module)
-        return res.status(404).json({ success: false, message: "Module not found" });
+        return res
+          .status(404)
+          .json({ success: false, message: "Module not found" });
 
       moduleData = { moduleId: module._id, moduleName: module.name };
 
@@ -111,7 +114,9 @@ export const createBulkQuestions = async (req, res, next) => {
     //  MODULE
     const module = await Module.findById(moduleId);
     if (!module)
-      return res.status(404).json({ success: false, message: "Module not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Module not found" });
 
     //  FIND QUIZ
     const quiz = await Quiz.findOne({ modules: module._id });
@@ -160,14 +165,15 @@ export const createBulkQuestions = async (req, res, next) => {
 //  UPDATE
 export const updateQuestion = async (req, res, next) => {
   try {
-    const updated = await Question.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const updated = await Question.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!updated)
-      return res.status(404).json({ success: false, message: "Question not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
 
     if (updated.quizId) await updateTotalQuestions(updated.quizId);
 
@@ -187,7 +193,9 @@ export const deleteQuestion = async (req, res, next) => {
     const deleted = await Question.findByIdAndDelete(req.params.id);
 
     if (!deleted)
-      return res.status(404).json({ success: false, message: "Question not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Question not found" });
 
     if (deleted.quizId) await updateTotalQuestions(deleted.quizId);
 
@@ -200,27 +208,18 @@ export const deleteQuestion = async (req, res, next) => {
   }
 };
 
-//  GET QUESTIONS BY QUIZ 
-export const getQuestionsByCollection = async (req, res, next) => {
+//  GET QUESTIONS BY QUIZ
+export const getQuestionsByCategoryIdOrQuizId = async (req, res, next) => {
   try {
-    const { collectionId } = req.params;
+    const { categoryId, quizId } = req.params;
 
     //  ONLY quizId based fetch
-    const questions = await Question.find({ quizId: collectionId });
-
-    const updatedQuestions = questions.map((q) => {
-      const correctOption = q.options.find((opt) => opt.id === q.correct);
-
-      return {
-        ...q.toObject(),
-        correctAnswerText: correctOption?.text || "Not available",
-      };
-    });
+    const questions = await Question.findById(quizId ?? categoryId);
 
     res.status(200).json({
       success: true,
-      total: updatedQuestions.length,
-      data: updatedQuestions,
+      total: questions.length,
+      data: questions,
     });
   } catch (err) {
     next(err);

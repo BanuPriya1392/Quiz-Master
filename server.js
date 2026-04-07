@@ -9,7 +9,7 @@ import connectDB from "./src/config/database.js";
 import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import quizRoutes from "./src/routes/quizRoutes.js";
-import moduleRoutes from "./src/routes/moduleRoutes.js";
+
 
 // ADD ALL MISSING IMPORTS
 import adminUserRoutes from "./src/routes/adminUserRoutes.js";

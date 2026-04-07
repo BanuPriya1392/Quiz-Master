@@ -16,7 +16,7 @@ import {
   createBulkQuestions,
   updateQuestion,
   deleteQuestion,
-} from "../controllers/questionController.js"; // ✅ Added
+} from "../controllers/questionController.js";
 
 import { verifyToken, allowRoles } from "../middlewares/authMiddleware.js";
 
