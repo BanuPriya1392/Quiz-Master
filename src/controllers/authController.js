@@ -2,11 +2,13 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../models/User.js";
 import sendResponse from "../utils/sendResponse.js";
+import { matchedData } from "express-validator";
 
 // 1. REGISTER
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, confirmPassword, role, agreeToTerms } = req.body;
+    const { name, email, password, confirmPassword, role, agreeToTerms } =
+      matchedData(req);
 
     if (password.trim() !== confirmPassword.trim()) {
       return sendResponse(res, 400, false, "Passwords do not match");
@@ -23,24 +25,21 @@ export const registerUser = async (req, res) => {
       email,
       password,
       role,
-      agreeToTerms
+      agreeToTerms,
     });
 
     return sendResponse(res, 201, true, "User registered successfully", {
-      
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
-
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }
 };
-
 
 // 2. LOGIN
 export const loginUser = async (req, res) => {
@@ -61,8 +60,8 @@ export const loginUser = async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      "quizmasterworking@2026",
+      { expiresIn: "1d" },
     );
 
     return sendResponse(res, 200, true, "Login successful", {
@@ -71,15 +70,13 @@ export const loginUser = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
-
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }
 };
-
 
 // 3. LOGOUT
 export const forgotPassword = async (req, res) => {
@@ -100,9 +97,8 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     return sendResponse(res, 200, true, "Reset token generated", {
-      token: resetToken
+      token: resetToken,
     });
-
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }
@@ -115,7 +111,7 @@ export const resetPassword = async (req, res) => {
 
     const user = await User.findOne({
       resetPasswordToken: token,
-      resetPasswordExpire: { $gt: Date.now() }
+      resetPasswordExpire: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -129,12 +125,10 @@ export const resetPassword = async (req, res) => {
     await user.save();
 
     return sendResponse(res, 200, true, "Password reset successful");
-
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }
 };
-
 
 // 5. CHANGE PASSWORD
 export const changePassword = async (req, res) => {
@@ -153,7 +147,6 @@ export const changePassword = async (req, res) => {
     await user.save();
 
     return sendResponse(res, 200, true, "Password changed successfully");
-
   } catch (error) {
     return sendResponse(res, 500, false, error.message);
   }

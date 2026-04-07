@@ -6,7 +6,7 @@ export const verifyToken = async (req, res, next) => {
   try {
     // 1️ Get Authorization header
     const authHeader = req.headers.authorization;
-
+    
     // 2 Check if token exists
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
@@ -19,7 +19,7 @@ export const verifyToken = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
 
     // 4️ Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, "quizmasterworking@2026");
 
     // 5️ Find user (optimized query)
     const user = await User.findById(decoded.id).select("_id role email");

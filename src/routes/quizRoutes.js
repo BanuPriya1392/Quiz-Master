@@ -32,7 +32,7 @@ router.get("/", getAllQuizzes);
 // Get single quiz
 router.get("/:quizId", getQuizById);
 
-// ✅ Get all questions of a quiz (uses getQuestionsByCollection — supports quizId)
+// Get all questions of a quiz (uses getQuestionsByCollection — supports quizId)
 router.get("/:quizId/questions", verifyToken, getQuestionsByCollection.bind(null)); 
 
 
@@ -80,13 +80,13 @@ router.patch(
   unpublishQuiz
 );
 
-// ✅ Add single question to a quiz
+// Add single question to a quiz
 router.post(
   "/:quizId/questions",
   verifyToken,
   allowRoles("mentor", "admin"),
   (req, res, next) => {
-    req.body.quizId = req.params.quizId; // ✅ inject quizId into body
+    req.body.quizId = req.params.quizId; // inject quizId into body
     next();
   },
   createQuestion

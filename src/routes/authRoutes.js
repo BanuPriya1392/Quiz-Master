@@ -30,7 +30,7 @@ router.post("/login", loginUser);
 // FORGOT PASSWORD
 router.post("/forgot-password", forgotPassword);
 
-// ✅ RESET PASSWORD (token in body)
+// RESET PASSWORD (token in body)
 router.post("/reset-password", resetPassword);
 
 // CHANGE PASSWORD (protected)

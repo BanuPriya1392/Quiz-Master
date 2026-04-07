@@ -18,7 +18,7 @@ router.post("/", createUser);
 router.get("/profile", verifyToken, getUserProfile);
 router.put("/profile", verifyToken, updateProfile);
 
-// Stats ✅ Fixed
+// Stats Fixed
 router.get("/profile/stats", verifyToken, getUserStats);
 
 // Delete account
