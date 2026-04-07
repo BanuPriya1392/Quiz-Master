@@ -3,7 +3,7 @@ import Quiz from "../models/Quiz.js";
 import Question from "../models/Questions.js";
 import QuizSession from "../models/quizSession.model.js";
 
-//start quiz attempt
+// START QUIZ ATTEMPT
 export const startAttempt = async (req, res, next) => {
   try {
     const { quizId } = req.params;
@@ -23,12 +23,8 @@ export const startAttempt = async (req, res, next) => {
       isCompleted: false,
     });
 
-    let finalQuestions = [];
-
-    for (let moduleId of quiz.modules) {
-      const questions = await Question.find({ moduleId });
-      finalQuestions = finalQuestions.concat(questions);
-    }
+   // Get questions
+    let finalQuestions = await Question.find({ quizId });
 
     if (!finalQuestions.length) {
       return res.status(400).json({
@@ -73,7 +69,7 @@ export const startAttempt = async (req, res, next) => {
   }
 };
 
-//start combined attempt for multiple module quizzes
+// START COMBINED ATTEMPT
 export const startCombinedAttempt = async (req, res, next) => {
   try {
     const { moduleQuizIds } = req.body;
@@ -107,23 +103,22 @@ export const startCombinedAttempt = async (req, res, next) => {
     let finalQuestions = [];
     const questionIdSet = new Set();
 
+    // FIX: module loop remove → quizId use
     for (let quiz of quizzes) {
-      for (let moduleId of quiz.modules) {
-        const questions = await Question.aggregate([
-          { $match: { moduleId: new mongoose.Types.ObjectId(moduleId) } },
-          { $sample: { size: 3 } }
-        ]);
+      const questions = await Question.aggregate([
+        { $match: { quizId: quiz._id } },
+        { $sample: { size: 3 } }
+      ]);
 
-        const uniqueQuestions = questions.filter(
-          (q) => !questionIdSet.has(q._id.toString())
-        );
+      const uniqueQuestions = questions.filter(
+        (q) => !questionIdSet.has(q._id.toString())
+      );
 
-        uniqueQuestions.forEach((q) =>
-          questionIdSet.add(q._id.toString())
-        );
+      uniqueQuestions.forEach((q) =>
+        questionIdSet.add(q._id.toString())
+      );
 
-        finalQuestions = finalQuestions.concat(uniqueQuestions);
-      }
+      finalQuestions = finalQuestions.concat(uniqueQuestions);
     }
 
     if (!finalQuestions.length) {
@@ -169,7 +164,7 @@ export const startCombinedAttempt = async (req, res, next) => {
   }
 };
 
-// submit quiz attempt
+// SUBMIT ATTEMPT
 export const submitAttempt = async (req, res, next) => {
   try {
     const { sessionId } = req.params;
@@ -191,7 +186,6 @@ export const submitAttempt = async (req, res, next) => {
       });
     }
 
-    // Expiry check
     if (session.isExpired()) {
       return res.status(400).json({
         success: false,
@@ -199,7 +193,6 @@ export const submitAttempt = async (req, res, next) => {
       });
     }
 
-    // Fetch questions
     const questions = await Question.find({
       _id: { $in: session.questions },
     });
@@ -217,7 +210,6 @@ export const submitAttempt = async (req, res, next) => {
 
       const correctAnswer = question.correct;
 
-      //  Correct option object
       const correctOptionObj = question.options.find(
         (opt) =>
           opt.id.toLowerCase() === correctAnswer.toLowerCase()
@@ -225,13 +217,11 @@ export const submitAttempt = async (req, res, next) => {
 
       const selectedOption = ans?.selectedOption || null;
 
-    //  Selected option object
       const selectedOptionObj = question.options.find(
         (opt) =>
           opt.id.toLowerCase() === selectedOption?.toLowerCase()
       );
 
-      // Safe comparison
       const isCorrect =
         selectedOption?.toLowerCase() ===
         correctAnswer.toLowerCase();
@@ -249,26 +239,21 @@ export const submitAttempt = async (req, res, next) => {
         questionId: question._id,
         question: question.question,
         options: question.options,
-
         selectedOption,
         selectedAnswerText:
           selectedOptionObj?.text || "Not answered",
-
         correctAnswer,
         correctAnswerText:
           correctOptionObj?.text || "Answer not available",
-
         isCorrect,
       });
     }
 
-    // Time taken
     const completedAt = new Date();
     const timeTaken = Math.floor(
       (completedAt - new Date(session.startedAt)) / 1000
     );
 
-    // Save session
     session.answers = evaluatedAnswers;
     session.score = score;
     session.correctAnswers = correct;
@@ -279,7 +264,6 @@ export const submitAttempt = async (req, res, next) => {
 
     await session.save();
 
-    // Response
     res.status(200).json({
       success: true,
       message: "Quiz submitted successfully",
@@ -297,7 +281,7 @@ export const submitAttempt = async (req, res, next) => {
   }
 };
 
-//get quiz performance
+// HISTORY
 export const getAttemptHistory = async (req, res, next) => {
   try {
     const attempts = await QuizSession.find({
@@ -314,7 +298,7 @@ export const getAttemptHistory = async (req, res, next) => {
   }
 };
 
-//get attempt by id
+// GET BY ID
 export const getAttemptById = async (req, res, next) => {
   try {
     const { attemptId } = req.params;

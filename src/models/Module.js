@@ -9,13 +9,11 @@ const moduleSchema = new mongoose.Schema(
       trim: true,
        lowercase: true,
     },
-
-    collectionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "QuizCollection",
-      required: true,
-    },
-
+categoryId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Category",
+  required: true
+},
     order: {
       type: Number,
       default: 0, 

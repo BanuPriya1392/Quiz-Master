@@ -7,14 +7,7 @@ const optionSchema = new mongoose.Schema({
 
 const questionSchema = new mongoose.Schema(
   {
-    
-    collectionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "QuizCollection",
-      default: null,
-    },
-
-   
+     
     quizId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Quiz",
@@ -83,9 +76,9 @@ const questionSchema = new mongoose.Schema(
 );
 
 questionSchema.pre("save", function (next) {
-  if (!this.collectionId && !this.quizId && !this.moduleId) {
+  if (!this.quizId && !this.moduleId) {
     return next(
-      new Error("At least one of collectionId, quizId, or moduleId is required.")
+      new Error("At least one of quizId or moduleId is required.")
     );
   }
   next();
