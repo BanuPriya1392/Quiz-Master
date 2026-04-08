@@ -5,7 +5,7 @@ const connectDB = async () => {
   try {
 
     // connect to MongoDB using connection string from .env
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect("mongodb://localhost:27017/Quiz-Master");
 
     // success message
     console.log("MongoDB Connected Successfully");

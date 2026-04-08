@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 import QuizCollection from "../models/QuizCollection.js";
-import Module from "../models/Module.js";
+import Quiz from "../models/Quiz.js";
 import Question from "../models/Questions.js";
-
 
 //  CREATE CATEGORY
 export const createCategory = async (req, res) => {
@@ -31,9 +30,9 @@ export const createCategory = async (req, res) => {
     }
 
     const newCategory = await QuizCollection.create({
-      title: trimmedName,              // map name → title
+      title: trimmedName, // map name → title
       description: description?.trim() || "",
-      category: trimmedName,           // keeping same value
+      category: trimmedName, // keeping same value
       createdBy: req.user?.id,
     });
 
@@ -42,7 +41,6 @@ export const createCategory = async (req, res) => {
       message: "Category created successfully",
       data: newCategory,
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -50,7 +48,6 @@ export const createCategory = async (req, res) => {
     });
   }
 };
-
 
 //  GET ALL CATEGORIES
 export const getAllCategories = async (req, res) => {
@@ -64,7 +61,6 @@ export const getAllCategories = async (req, res) => {
       count: categories.length,
       data: categories,
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -73,8 +69,7 @@ export const getAllCategories = async (req, res) => {
   }
 };
 
-
-//  GET CATEGORY + MODULES
+//  GET Quizzes By CategoryID
 export const getCategoryById = async (req, res) => {
   try {
     const { categoryId } = req.params;
@@ -88,7 +83,7 @@ export const getCategoryById = async (req, res) => {
       });
     }
 
-    const category = await QuizCollection.findById(categoryId);
+    const category = await QuizCollection.findById({ _id: categoryId });
 
     if (!category) {
       return res.status(404).json({
@@ -97,17 +92,19 @@ export const getCategoryById = async (req, res) => {
       });
     }
 
-    const modules = await Module.find({ collectionId: categoryId })
-      .sort({ order: 1 });
+    // const modules = await Quiz.find({ collectionId: categoryId }).sort({
+    //   order: 1,
+    // });
+
+    const quizzes = await Quiz.findById(categoryId);
 
     res.status(200).json({
       success: true,
       data: {
         ...category.toObject(),
-        modules,
+        quizzes
       },
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -115,7 +112,6 @@ export const getCategoryById = async (req, res) => {
     });
   }
 };
-
 
 //  UPDATE CATEGORY
 export const updateCategory = async (req, res) => {
@@ -156,11 +152,10 @@ export const updateCategory = async (req, res) => {
       updateData.description = description.trim();
     }
 
-    const updated = await QuizCollection.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const updated = await QuizCollection.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!updated) {
       return res.status(404).json({
@@ -174,7 +169,6 @@ export const updateCategory = async (req, res) => {
       message: "Category updated successfully",
       data: updated,
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -182,7 +176,6 @@ export const updateCategory = async (req, res) => {
     });
   }
 };
-
 
 //  DELETE CATEGORY (CASCADE)
 export const deleteCategory = async (req, res) => {
@@ -213,17 +206,13 @@ export const deleteCategory = async (req, res) => {
 
     //  Delete questions
     await Question.deleteMany({
-      $or: [
-        { collectionId: id },
-        { moduleId: { $in: moduleIds } }
-      ]
+      $or: [{ collectionId: id }, { moduleId: { $in: moduleIds } }],
     });
 
     res.status(200).json({
       success: true,
       message: "Category, modules & questions deleted successfully",
     });
-
   } catch (err) {
     res.status(500).json({
       success: false,

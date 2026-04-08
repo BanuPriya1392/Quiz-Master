@@ -10,6 +10,7 @@ import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import quizRoutes from "./src/routes/quizRoutes.js";
 
+
 // ADD ALL MISSING IMPORTS
 import adminUserRoutes from "./src/routes/adminUserRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
@@ -33,25 +34,27 @@ app.use(
   cors({
     origin: "http://localhost:5173",
     credentials: true,
-  })
+  }),
 );
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
+app.use("/api/categories", categoryRoutes); // Routes : Category + Modules
+app.use("/api/quizzes", quizRoutes);
+app.use("/api/questions", questionRoutes);
+
+// app.use("/api/")
+// app.use("/api/users", userRoutes);
 
 // Admin routes
-app.use("/api/admin/users", adminUserRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/admin/analytics", adminAnalyticsRoutes);
+// app.use("/api/admin/users", adminUserRoutes);
+// app.use("/api/admin", adminRoutes);
+// app.use("/api/admin/analytics", adminAnalyticsRoutes);
 
 // Core routes
 // Categories (with nested module routes inside categoryRoutes.js)
-app.use("/api/categories", categoryRoutes);
-app.use("/api/questions", questionRoutes);
-app.use("/api/quizzes", quizRoutes);
-app.use("/api/attempts", attemptRoutes);
-app.use("/api/wishlist", wishlistRoutes);
+// app.use("/api/attempts", attemptRoutes);
+// app.use("/api/wishlist", wishlistRoutes);
 
 // Health check
 app.get("/", (req, res) => {

@@ -7,21 +7,15 @@ const optionSchema = new mongoose.Schema({
 
 const questionSchema = new mongoose.Schema(
   {
-     
     quizId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Quiz",
       default: null,
     },
 
-    moduleId: {
+    categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Module",
-      default: null,
-    },
-
-    moduleName: {
-      type: String,
       default: null,
     },
 
@@ -44,12 +38,13 @@ const questionSchema = new mongoose.Schema(
           validator: (opts) => {
             const ids = opts.map((o) => o.id);
             const allPresent = ["A", "B", "C", "D"].every((id) =>
-              ids.includes(id)
+              ids.includes(id),
             );
             const noDuplicates = new Set(ids).size === 4;
             return allPresent && noDuplicates;
           },
-          message: "Options must contain exactly one entry each for A, B, C, and D.",
+          message:
+            "Options must contain exactly one entry each for A, B, C, and D.",
         },
       ],
     },
@@ -57,13 +52,18 @@ const questionSchema = new mongoose.Schema(
     correct: {
       type: String,
       enum: ["A", "B", "C", "D"],
-      required: [true, "Correct answer is required."],
+      required: [true, "Correct answer option is required."],
+    },
+
+    correctAnswerText: {
+      type: String,
+      required: [true, "Correct answer text is required."],
     },
 
     tip: {
       type: String,
       trim: true,
-      default: null, 
+      default: null,
     },
 
     createdBy: {
@@ -72,16 +72,13 @@ const questionSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true, versionKey: false }
+  { timestamps: true, versionKey: false },
 );
 
-questionSchema.pre("save", function (next) {
-  if (!this.quizId && !this.moduleId) {
-    return next(
-      new Error("At least one of quizId or moduleId is required.")
-    );
+questionSchema.pre("save", function () {
+  if (!this.quizId && !this.categoryId) {
+    return next(new Error("At least one of quizId or categoryId is required."));
   }
-  next();
 });
 
 const Question = mongoose.model("QuizQuestion", questionSchema);

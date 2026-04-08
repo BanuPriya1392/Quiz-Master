@@ -17,7 +17,7 @@ const router = express.Router();
 
 //PUBLIC ROUTES
 router.get("/", getAllQuestions);
-router.get("/collection/:collectionId", getQuestionsByCollection);
+router.get("/:categoryId/:quizId/questions", getQuestionsByCollection);
 router.get("/:id", getQuestionById);
 
 //protected routes

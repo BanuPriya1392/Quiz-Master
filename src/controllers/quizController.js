@@ -29,8 +29,10 @@ export const getAllQuizzes = async (req, res, next) => {
 // GET /api/quizzes/:quizId
 export const getQuizById = async (req, res, next) => {
   try {
-    const quiz = await Quiz.findById(req.params.quizId)
-      .populate("createdBy", "name email");
+    const quiz = await Quiz.findById(req.params.quizId).populate(
+      "createdBy",
+      "name email",
+    );
 
     if (!quiz) {
       return res.status(404).json({
@@ -59,9 +61,8 @@ export const getQuizById = async (req, res, next) => {
 // POST /api/quizzes
 export const createQuiz = async (req, res, next) => {
   try {
-    const { title, description, categoryId, difficulty, moduleIds } = req.body;
-
-    if (!title || !categoryId || !moduleIds || moduleIds.length === 0) {
+    const { title, description, categoryId, difficulty } = req.body;
+    if (!title || !categoryId) {
       return res.status(400).json({
         success: false,
         message: "title, categoryId, moduleIds are required",
@@ -79,8 +80,7 @@ export const createQuiz = async (req, res, next) => {
     const quiz = await Quiz.create({
       title: title.trim(),
       description,
-      category: categoryId,
-      modules: moduleIds, // keep as is
+      categoryId,
       difficulty: difficulty || "easy",
       totalQues: 0,
       status: "unpublished",
@@ -110,11 +110,10 @@ export const updateQuiz = async (req, res, next) => {
     if (difficulty) updateData.difficulty = difficulty;
     if (moduleIds) updateData.modules = moduleIds;
 
-    const quiz = await Quiz.findByIdAndUpdate(
-      req.params.quizId,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const quiz = await Quiz.findByIdAndUpdate(req.params.quizId, updateData, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!quiz) {
       return res.status(404).json({
@@ -203,7 +202,7 @@ export const unpublishQuiz = async (req, res, next) => {
         status: "unpublished",
         publishedAt: null,
       },
-      { new: true }
+      { new: true },
     );
 
     if (!quiz) {
