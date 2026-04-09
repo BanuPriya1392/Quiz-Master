@@ -10,7 +10,6 @@ import authRoutes from "./src/routes/authRoutes.js";
 import userRoutes from "./src/routes/userRoutes.js";
 import quizRoutes from "./src/routes/quizRoutes.js";
 
-
 // ADD ALL MISSING IMPORTS
 import adminUserRoutes from "./src/routes/adminUserRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
@@ -53,7 +52,7 @@ app.use("/api/questions", questionRoutes);
 
 // Core routes
 // Categories (with nested module routes inside categoryRoutes.js)
-// app.use("/api/attempts", attemptRoutes);
+app.use("/api/attempts", attemptRoutes);
 // app.use("/api/wishlist", wishlistRoutes);
 
 // Health check

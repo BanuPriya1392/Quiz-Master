@@ -102,7 +102,7 @@ export const getCategoryById = async (req, res) => {
       success: true,
       data: {
         ...category.toObject(),
-        quizzes
+        quizzes,
       },
     });
   } catch (err) {
@@ -116,10 +116,10 @@ export const getCategoryById = async (req, res) => {
 //  UPDATE CATEGORY
 export const updateCategory = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { categoryId } = req.params;
     const { name, description } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
       return res.status(400).json({
         success: false,
         message: "Invalid category ID",
@@ -134,7 +134,7 @@ export const updateCategory = async (req, res) => {
       //  Prevent duplicate (excluding same doc)
       const existing = await QuizCollection.findOne({
         title: trimmedName,
-        _id: { $ne: id },
+        _id: { $ne: categoryId },
       });
 
       if (existing) {
@@ -152,10 +152,14 @@ export const updateCategory = async (req, res) => {
       updateData.description = description.trim();
     }
 
-    const updated = await QuizCollection.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    const updated = await QuizCollection.findByIdAndUpdate(
+      categoryId,
+      updateData,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
 
     if (!updated) {
       return res.status(404).json({
@@ -177,19 +181,18 @@ export const updateCategory = async (req, res) => {
   }
 };
 
-//  DELETE CATEGORY (CASCADE)
 export const deleteCategory = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { categoryId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
       return res.status(400).json({
         success: false,
         message: "Invalid category ID",
       });
     }
 
-    const category = await QuizCollection.findByIdAndDelete(id);
+    const category = await QuizCollection.findByIdAndDelete(categoryId);
 
     if (!category) {
       return res.status(404).json({
@@ -198,20 +201,20 @@ export const deleteCategory = async (req, res) => {
       });
     }
 
-    //  Delete modules
-    const modules = await Module.find({ collectionId: id });
-    const moduleIds = modules.map((m) => m._id);
+    // Delete quizzes
+    const quizzes = await Quiz.find({ collectionId: categoryId });
+    const quizIds = quizzes.map((q) => q._id);
 
-    await Module.deleteMany({ collectionId: id });
+    await Quiz.deleteMany({ collectionId: categoryId });
 
-    //  Delete questions
+    // Delete questions
     await Question.deleteMany({
-      $or: [{ collectionId: id }, { moduleId: { $in: moduleIds } }],
+      $or: [{ collectionId: categoryId }, { quizId: { $in: quizIds } }],
     });
 
     res.status(200).json({
       success: true,
-      message: "Category, modules & questions deleted successfully",
+      message: "Category, quizzes & questions deleted successfully",
     });
   } catch (err) {
     res.status(500).json({

@@ -11,7 +11,7 @@ import {
 } from "../controllers/quizController.js";
 
 import {
-  getQuestionsByCollection,
+  getQuestionsByCategoryIdOrQuizId,
   createQuestion,
   createBulkQuestions,
   updateQuestion,
@@ -33,35 +33,28 @@ router.get("/", getAllQuizzes);
 router.get("/:quizId", getQuizById);
 
 // Get all questions of a quiz (uses getQuestionsByCollection — supports quizId)
-router.get("/:quizId/questions", verifyToken, getQuestionsByCollection.bind(null)); 
-
+router.get(
+  "/:quizId/questions",
+  verifyToken,
+  getQuestionsByCategoryIdOrQuizId.bind(null),
+);
 
 /**
  * PROTECTED ROUTES (Mentor / Admin)
  */
 
 // Create quiz
-router.post(
-  "/",
-  verifyToken,
-  allowRoles("mentor", "admin"),
-  createQuiz
-);
+router.post("/", verifyToken, allowRoles("mentor", "admin"), createQuiz);
 
 // Update quiz
-router.put(
-  "/:quizId",
-  verifyToken,
-  allowRoles("mentor", "admin"),
-  updateQuiz
-);
+router.put("/:quizId", verifyToken, allowRoles("mentor", "admin"), updateQuiz);
 
 // Delete quiz
 router.delete(
   "/:quizId",
   verifyToken,
   allowRoles("mentor", "admin"),
-  deleteQuiz
+  deleteQuiz,
 );
 
 // Publish quiz
@@ -69,7 +62,7 @@ router.patch(
   "/:quizId/publish",
   verifyToken,
   allowRoles("mentor", "admin"),
-  publishQuiz
+  publishQuiz,
 );
 
 // Unpublish quiz
@@ -77,7 +70,7 @@ router.patch(
   "/:quizId/unpublish",
   verifyToken,
   allowRoles("mentor", "admin"),
-  unpublishQuiz
+  unpublishQuiz,
 );
 
 // Add single question to a quiz
@@ -89,7 +82,7 @@ router.post(
     req.body.quizId = req.params.quizId; // inject quizId into body
     next();
   },
-  createQuestion
+  createQuestion,
 );
 
 // ✅ Add bulk questions to a quiz
@@ -98,10 +91,10 @@ router.post(
   verifyToken,
   allowRoles("mentor", "admin"),
   (req, res, next) => {
-    req.body.collectionId = req.params.quizId; // ✅ inject quizId as collectionId
+    req.body.quizId = req.params.quizId; // ✅ inject quizId as collectionId
     next();
   },
-  createBulkQuestions
+  createBulkQuestions,
 );
 
 // ✅ Update a question
@@ -113,7 +106,7 @@ router.put(
     req.params.id = req.params.questionId; // ✅ map questionId → id
     next();
   },
-  updateQuestion
+  updateQuestion,
 );
 
 // ✅ Delete a question
@@ -125,7 +118,7 @@ router.delete(
     req.params.id = req.params.questionId; // ✅ map questionId → id
     next();
   },
-  deleteQuestion
+  deleteQuestion,
 );
 
 export default router;

@@ -65,7 +65,7 @@ export const createQuiz = async (req, res, next) => {
     if (!title || !categoryId) {
       return res.status(400).json({
         success: false,
-        message: "title, categoryId, moduleIds are required",
+        message: "title, categoryId are required",
       });
     }
 
@@ -170,10 +170,10 @@ export const publishQuiz = async (req, res, next) => {
       quizId: quiz._id,
     });
 
-    if (questionCount < 3) {
+    if (questionCount < 2) {
       return res.status(400).json({
         success: false,
-        message: `Need at least 3 questions. Now: ${questionCount}`,
+        message: `Need at least 2 questions. Now: ${questionCount}`,
       });
     }
 

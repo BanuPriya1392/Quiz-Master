@@ -17,11 +17,7 @@ const quizCollectionSchema = new mongoose.Schema(
       maxlength: 300,
       default: "",
     },
-    category: {
-      type: String,
-      required: [true, "Category is required"],
-      trim: true,
-    },
+
     difficulty: {
       type: String,
       enum: ["easy", "medium", "hard"],
@@ -43,7 +39,7 @@ const quizCollectionSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true, versionKey: false }
+  { timestamps: true, versionKey: false },
 );
 
 quizCollectionSchema.index({ category: 1 });

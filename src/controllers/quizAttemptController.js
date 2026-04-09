@@ -23,7 +23,7 @@ export const startAttempt = async (req, res, next) => {
       isCompleted: false,
     });
 
-   // Get questions
+    // Get questions
     let finalQuestions = await Question.find({ quizId });
 
     if (!finalQuestions.length) {
@@ -51,7 +51,7 @@ export const startAttempt = async (req, res, next) => {
       data: {
         sessionId: session._id,
         quizTitle: quiz.title,
-        timeLimit: quiz.timeLimit || "15 minutes",
+        timeLimit: quiz.timeLimit || "10 minutes",
         totalQuestions: finalQuestions.length,
         questions: finalQuestions.map((q) => ({
           _id: q._id,
@@ -82,7 +82,7 @@ export const startCombinedAttempt = async (req, res, next) => {
     }
 
     const quizzes = await Quiz.find({
-      _id: { $in: moduleQuizIds.map(id => new mongoose.Types.ObjectId(id)) },
+      _id: { $in: moduleQuizIds.map((id) => new mongoose.Types.ObjectId(id)) },
       status: "published",
     });
 
@@ -107,16 +107,14 @@ export const startCombinedAttempt = async (req, res, next) => {
     for (let quiz of quizzes) {
       const questions = await Question.aggregate([
         { $match: { quizId: quiz._id } },
-        { $sample: { size: 3 } }
+        { $sample: { size: 3 } },
       ]);
 
       const uniqueQuestions = questions.filter(
-        (q) => !questionIdSet.has(q._id.toString())
+        (q) => !questionIdSet.has(q._id.toString()),
       );
 
-      uniqueQuestions.forEach((q) =>
-        questionIdSet.add(q._id.toString())
-      );
+      uniqueQuestions.forEach((q) => questionIdSet.add(q._id.toString()));
 
       finalQuestions = finalQuestions.concat(uniqueQuestions);
     }
@@ -204,27 +202,22 @@ export const submitAttempt = async (req, res, next) => {
     const evaluatedAnswers = [];
 
     for (let question of questions) {
-      const ans = answers.find(
-        (a) => a.questionId === question._id.toString()
-      );
+      const ans = answers.find((a) => a.questionId === question._id.toString());
 
       const correctAnswer = question.correct;
 
       const correctOptionObj = question.options.find(
-        (opt) =>
-          opt.id.toLowerCase() === correctAnswer.toLowerCase()
+        (opt) => opt.id.toLowerCase() === correctAnswer.toLowerCase(),
       );
 
       const selectedOption = ans?.selectedOption || null;
 
       const selectedOptionObj = question.options.find(
-        (opt) =>
-          opt.id.toLowerCase() === selectedOption?.toLowerCase()
+        (opt) => opt.id.toLowerCase() === selectedOption?.toLowerCase(),
       );
 
       const isCorrect =
-        selectedOption?.toLowerCase() ===
-        correctAnswer.toLowerCase();
+        selectedOption?.toLowerCase() === correctAnswer.toLowerCase();
 
       if (selectedOption) {
         if (isCorrect) {
@@ -240,18 +233,16 @@ export const submitAttempt = async (req, res, next) => {
         question: question.question,
         options: question.options,
         selectedOption,
-        selectedAnswerText:
-          selectedOptionObj?.text || "Not answered",
+        selectedAnswerText: selectedOptionObj?.text || "Not answered",
         correctAnswer,
-        correctAnswerText:
-          correctOptionObj?.text || "Answer not available",
+        correctAnswerText: correctOptionObj?.text || "Answer not available",
         isCorrect,
       });
     }
 
     const completedAt = new Date();
     const timeTaken = Math.floor(
-      (completedAt - new Date(session.startedAt)) / 1000
+      (completedAt - new Date(session.startedAt)) / 1000,
     );
 
     session.answers = evaluatedAnswers;

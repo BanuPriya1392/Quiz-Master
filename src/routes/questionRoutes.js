@@ -7,17 +7,23 @@ import {
   createBulkQuestions,
   updateQuestion,
   deleteQuestion,
-  getQuestionsByCollection
+  getQuestionsByCategoryIdOrQuizId,
 } from "../controllers/questionController.js";
 
 // Use your existing middleware (verifyToken style)
-import { verifyToken, isMentor, isAdmin } from "../middlewares/authMiddleware.js";
+import {
+  verifyToken,
+  isMentor,
+  isAdmin,
+} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 //PUBLIC ROUTES
 router.get("/", getAllQuestions);
-router.get("/:categoryId/:quizId/questions", getQuestionsByCollection);
+router.get("/quiz/:quizId", getQuestionsByCategoryIdOrQuizId);
+router.get("/category/:categoryId", getQuestionsByCategoryIdOrQuizId);
+router.get("/:categoryId/:quizId", getQuestionsByCategoryIdOrQuizId);
 router.get("/:id", getQuestionById);
 
 //protected routes

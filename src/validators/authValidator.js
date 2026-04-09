@@ -1,7 +1,6 @@
 import { body } from "express-validator";
 
 export const registerValidator = [
-
   // Full Name validation
   body("name")
     .trim()
@@ -43,17 +42,20 @@ export const registerValidator = [
     .notEmpty()
     .withMessage("Confirm Password is required")
     .custom((value, { req }) => {
-
-      if (String(value).trim()!== String(req.body.password).trim()) {
+      if (String(value).trim() !== String(req.body.password).trim()) {
         throw new Error("Passwords do not match");
       }
 
       return true;
     }),
+  //Role validation
+  body("role")
+    .optional()
+    .isIn(["learner", "mentor", "admin"])
+    .withMessage("Invalid role"),
 
   // Terms agreement validation
   body("agreeToTerms")
     .equals("true")
-    .withMessage("You must agree to the terms")
-
+    .withMessage("You must agree to the terms"),
 ];
