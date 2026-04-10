@@ -21,11 +21,24 @@ const wishlistSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Prevent duplicate entries
-wishlistSchema.index({ user: 1, question: 1 }, { unique: true, sparse: true });
-wishlistSchema.index({ user: 1, category: 1 }, { unique: true, sparse: true });
+wishlistSchema.index(
+  { user: 1, question: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { question: { $type: "objectId" } },
+  },
+);
+
+wishlistSchema.index(
+  { user: 1, category: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { category: { $type: "objectId" } },
+  },
+);
 
 export default mongoose.model("Wishlist", wishlistSchema);

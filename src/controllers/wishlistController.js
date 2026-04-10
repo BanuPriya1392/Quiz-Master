@@ -7,13 +7,18 @@ export const addToWishlist = async (req, res) => {
     const userId = req.user.id;
     const { questionId, categoryId } = req.body;
 
+    if (questionId && categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: "Send either questionId OR categoryId, not both",
+      });
+    }
     if (!questionId && !categoryId) {
       return res.status(400).json({
         success: false,
         message: "questionId or categoryId required",
       });
     }
-
     const exists = await Wishlist.findOne({
       user: userId,
       ...(questionId && { question: questionId }),
@@ -29,8 +34,8 @@ export const addToWishlist = async (req, res) => {
 
     const wishlist = await Wishlist.create({
       user: userId,
-      question: questionId || null,
-      category: categoryId || null,
+      question: questionId || undefined,
+      category: categoryId || undefined,
     });
 
     res.status(201).json({

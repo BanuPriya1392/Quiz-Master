@@ -16,9 +16,9 @@ const quizSchema = new mongoose.Schema(
       default: "",
     },
     categoryId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
       required: [true, "Category is required"],
-      trim: true,
     },
     difficulty: {
       type: String,
