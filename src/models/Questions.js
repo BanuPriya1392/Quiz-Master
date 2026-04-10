@@ -81,5 +81,5 @@ questionSchema.pre("save", function () {
   }
 });
 
-const Question = mongoose.model("QuizQuestion", questionSchema);
+const Question = mongoose.model("Question", questionSchema);
 export default Question;
