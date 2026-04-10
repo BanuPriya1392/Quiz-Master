@@ -1,7 +1,6 @@
 // controllers/wishlistController.js
 import Wishlist from "../models/Wishlist.js";
 
-
 //  Add to wishlist
 export const addToWishlist = async (req, res) => {
   try {
@@ -47,19 +46,22 @@ export const addToWishlist = async (req, res) => {
   }
 };
 
-
 //  Get wishlist
 export const getWishlist = async (req, res) => {
   try {
     const userId = req.user.id;
 
     const wishlist = await Wishlist.find({ user: userId })
-      .populate("question")
-      .populate("category");
+      .populate("question", "question")
+      .populate("category", "name");
 
     res.status(200).json({
       success: true,
-      data: wishlist,
+      data: wishlist.map((w) => ({
+        id: w._id,
+        question: w.question?.question || null,
+        category: w.category?.name || null,
+      })),
     });
   } catch (err) {
     res.status(500).json({
@@ -68,7 +70,6 @@ export const getWishlist = async (req, res) => {
     });
   }
 };
-
 
 //  Remove from wishlist
 export const removeFromWishlist = async (req, res) => {

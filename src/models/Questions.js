@@ -15,7 +15,7 @@ const questionSchema = new mongoose.Schema(
 
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Module",
+      ref: "Category",
       default: null,
     },
 
