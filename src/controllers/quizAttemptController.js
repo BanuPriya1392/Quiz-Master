@@ -303,10 +303,13 @@ export const getAttemptById = async (req, res, next) => {
   try {
     const { attemptId } = req.params;
 
-    const attempt = await QuizSession.findById(attemptId).populate({
-      path: "questions",
-      select: "question options correct",
-    });
+    const attempt = await QuizSession.findById(attemptId)
+      .populate("user", "name")
+      .populate("quizId", "title")
+      .populate({
+        path: "questions",
+        select: "question",
+      });
 
     if (!attempt) {
       return res.status(404).json({
@@ -319,6 +322,8 @@ export const getAttemptById = async (req, res, next) => {
       success: true,
       data: {
         attemptId: attempt._id,
+        userName: attempt.user?.name,
+        title: attempt.quizId?.title,
         score: attempt.score,
         totalQuestions: attempt.totalQuestions,
         correctAnswers: attempt.correctAnswers,
