@@ -303,7 +303,10 @@ export const getAttemptById = async (req, res, next) => {
   try {
     const { attemptId } = req.params;
 
-    const attempt = await QuizSession.findById(attemptId);
+    const attempt = await QuizSession.findById(attemptId).populate({
+      path: "questions",
+      select: "question options correct",
+    });
 
     if (!attempt) {
       return res.status(404).json({
@@ -314,7 +317,36 @@ export const getAttemptById = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data: attempt,
+      data: {
+        attemptId: attempt._id,
+        score: attempt.score,
+        totalQuestions: attempt.totalQuestions,
+        correctAnswers: attempt.correctAnswers,
+        wrongAnswers: attempt.wrongAnswers,
+        timeTaken: attempt.timeTaken,
+        questions: attempt.questions.map((q) => {
+          const ans = attempt.answers.find(
+            (a) => a.questionId.toString() === q._id.toString(),
+          );
+
+          const correctOption = q.options.find((opt) => opt.id === q.correct);
+
+          const selectedOption = q.options.find(
+            (opt) => opt.id === ans?.selectedOption,
+          );
+
+          return {
+            questionId: q._id,
+            question: q.question,
+            options: q.options,
+            selectedOption: ans?.selectedOption || null,
+            selectedAnswerText: selectedOption?.text || "Not answered",
+            correctAnswer: q.correct,
+            correctAnswerText: correctOption?.text || "",
+            isCorrect: ans?.isCorrect || false,
+          };
+        }),
+      },
     });
   } catch (err) {
     next(err);
