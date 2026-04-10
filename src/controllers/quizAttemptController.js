@@ -277,12 +277,21 @@ export const getAttemptHistory = async (req, res, next) => {
   try {
     const attempts = await QuizSession.find({
       user: req.user.id,
-    }).sort({ createdAt: -1 });
+    })
+      .populate("user", "name email")
+      .populate("quizId", "title")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
       count: attempts.length,
-      data: attempts,
+      data: attempts.map((a) => ({
+        attemptId: a._id,
+        userName: a.user?.name,
+        quizTitle: a.quizId?.title,
+        score: a.score,
+        totalQuestions: a.totalQuestions,
+      })),
     });
   } catch (err) {
     next(err);
