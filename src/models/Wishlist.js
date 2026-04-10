@@ -1,5 +1,8 @@
 // models/Wishlist.js
 import mongoose from "mongoose";
+// Wishlist.js
+import "./Category.js";
+import "./Questions.js";
 
 const wishlistSchema = new mongoose.Schema(
   {

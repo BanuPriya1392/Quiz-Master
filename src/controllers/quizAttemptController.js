@@ -308,7 +308,7 @@ export const getAttemptById = async (req, res, next) => {
       .populate("quizId", "title")
       .populate({
         path: "questions",
-        select: "question",
+        select: "question options correct",
       });
 
     if (!attempt) {
@@ -330,13 +330,13 @@ export const getAttemptById = async (req, res, next) => {
         wrongAnswers: attempt.wrongAnswers,
         timeTaken: attempt.timeTaken,
         questions: attempt.questions.map((q) => {
-          const ans = attempt.answers.find(
-            (a) => a.questionId.toString() === q._id.toString(),
+          const ans = attempt.answers?.find(
+            (a) => a.questionId?.toString() === q._id.toString(),
           );
 
-          const correctOption = q.options.find((opt) => opt.id === q.correct);
+          const correctOption = q.options?.find((opt) => opt.id === q.correct);
 
-          const selectedOption = q.options.find(
+          const selectedOption = q.options?.find(
             (opt) => opt.id === ans?.selectedOption,
           );
 
