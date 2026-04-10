@@ -31,7 +31,7 @@ connectDB();
 app.use(express.json());
 app.use(
   cors({
-    origin: "https://quizmastery-flame.vercel.app/",
+    origin: "https://quizmastery-flame.vercel.app",
     credentials: true,
   }),
 );
@@ -41,6 +41,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes); // Routes : Category + Modules
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/questions", questionRoutes);
+
 
 app.use("/api/users", userRoutes);
 
