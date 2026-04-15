@@ -27,7 +27,7 @@ const app = express();
 // DB connect
 connectDB();
 
-// Middleware
+// middleware
 app.use(express.json());
 app.use(
   cors({
